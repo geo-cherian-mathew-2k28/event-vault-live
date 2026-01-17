@@ -51,6 +51,7 @@ export default function Profile() {
         e.preventDefault();
         setSaving(true);
         try {
+            // 1. Update public profile table
             const updates = {
                 id: user.id,
                 full_name: profile.full_name,
@@ -64,8 +65,20 @@ export default function Profile() {
                 .upsert(updates);
 
             if (error) throw error;
-            alert('Profile updated successfully!');
+
+            // 2. Sync with Auth Metadata (Critical for Navbar/Session updates)
+            const { error: authError } = await supabase.auth.updateUser({
+                data: {
+                    full_name: profile.full_name,
+                    avatar_url: profile.avatar_url
+                }
+            });
+
+            if (authError) throw authError;
+
+            alert('Profile updated and synced successfully!');
         } catch (error) {
+            console.error(error);
             alert(error.message);
         } finally {
             setSaving(false);
