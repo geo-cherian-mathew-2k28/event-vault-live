@@ -7,14 +7,18 @@ Your application is ready for production. Below are the steps to deploy it prope
 You need to push your code to a remote repository (GitHub, GitLab, or Bitbucket) for Vercel to allow continuous deployment, although Vercel CLI can also deploy directly.
 
 **Step 1. Initialize & Commit (Important Update)**
-Make sure the new `vercel.json` file is included, as it fixes "404 Not Found" errors on shared links.
+We have updated `vercel.json` one last time to be explicit about the framework.
+Please run these check-in commands immediately:
 
 ```bash
-# 1. Add all new files (including vercel.json)
+# 1. Add all new files
 git add .
 
 # 2. Commit
-git commit -m "Add vercel config for routing and fix event lookup"
+git commit -m "Fix routing and vercel config"
+
+# 3. Push to deploy
+git push origin main
 ```
 
 **Step 2. Push to GitHub (Standard Approach)**
