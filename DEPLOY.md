@@ -6,20 +6,21 @@ Your application is ready for production. Below are the steps to deploy it prope
 
 You need to push your code to a remote repository (GitHub, GitLab, or Bitbucket) for Vercel to allow continuous deployment, although Vercel CLI can also deploy directly.
 
-**Step 1. Initialize & Commit**
-```bash
-# 1. Initialize Git
-git init
+**Step 1. Initialize & Commit (Important Update)**
+Make sure the new `vercel.json` file is included, as it fixes "404 Not Found" errors on shared links.
 
-# 2. Add all files
+```bash
+# 1. Add all new files (including vercel.json)
 git add .
 
-# 3. Commit
-git commit -m "Initial commit for production"
+# 2. Commit
+git commit -m "Add vercel config for routing and fix event lookup"
 ```
 
 **Step 2. Push to GitHub (Standard Approach)**
-1.  Go to **GitHub.com** and create a **New Repository** (e.g., named `event-vault`).
+1.  Go to **GitHub.com** and create a **New Repository**.
+    *   **Repository Name**: `event-vault`
+    *   **Visibility**: **Private** (Recommended for security)
 2.  **Do not** add a README or .gitignore (you already have them).
 3.  Copy the URL (e.g., `https://github.com/YourUsername/event-vault.git`).
 4.  Run these commands in your VS Code terminal:
@@ -35,45 +36,37 @@ git branch -M main
 git push -u origin main
 ```
 
-## 2. Deploy to Vercel (Recommended)
+## 2. Deploy via Vercel Website (No CLI)
 
-Vercel is the most professional hosting platform for Next.js/Vite apps.
+This is the easiest way to deploy.
 
-1.  **Go to [vercel.com](https://vercel.com) and Sign Up/Login.**
-2.  **Install Vercel CLI** (Optional but easier):
-    ```bash
-    npm i -g vercel
-    ```
-3.  **Run Deploy Command**:
-    In your project terminal (`d:\event`), run:
-    ```bash
-    vercel
-    ```
-4.  **Follow the prompts**:
-    *   Set up and deploy? **Y**
-    *   Which scope? **(Select your account)**
-    *   Link to existing project? **N**
-    *   Project name? **event-vault**
-    *   Directory? **./**
-    *   Auto-detect settings? **Y** (It will detect Vite)
-
-5.  **Environment Variables**:
-    *   Go to your new Vercel Dashboard for the project.
-    *   Go to **Settings > Environment Variables**.
-    *   Add your Supabase keys from your `.env` file:
-        *   `VITE_SUPABASE_URL`
-        *   `VITE_SUPABASE_ANON_KEY`
-    *   **Redeploy** (Go to Deployments -> Redeploy) for these to take effect.
+1.  **Go to [vercel.com/new](https://vercel.com/new)** and Log In.
+2.  **Import Git Repository**:
+    *   You should see your `event-vault` repository in the list (if you connected GitHub).
+    *   Click **Import**.
+3.  **Configure Project**:
+    *   **Framework Preset**: It should auto-detect **Vite**.
+    *   **Root Directory**: Leave as `./`.
+4.  **Environment Variables (CRITICAL)**:
+    *   Click to expand the **Environment Variables** section.
+    *   Copy these values from your local `.env` file:
+        *   **Name**: `VITE_SUPABASE_URL` | **Value**: `https://bxuzhfcnzuonnwgmgrnv.supabase.co`
+        *   **Name**: `VITE_SUPABASE_ANON_KEY` | **Value**: (your long key starting with eyJ...)
+    *   *Tip: You can Copy/Paste lines from your .env file usually.*
+5.  **Click Deploy**.
+    *   Wait ~1 minute. You will get a production URL (e.g., `https://event-vault.vercel.app`).
 
 ## 3. Configure Supabase for Production (CRITICAL)
 
-For "Login with Email" to work for *everyone* on the public internet:
+Now that you have your **Vercel URL** (e.g., `https://event-vault.vercel.app`), you must tell Supabase it is safe.
 
 1.  Go to your **Supabase Dashboard**.
 2.  Navigate to **Authentication > URL Configuration**.
-3.  **Site URL**: Change this from `localhost` to your new Vercel domain (e.g., `https://event-vault.vercel.app`).
-4.  **Redirect URLs**: Add `https://event-vault.vercel.app/**`.
+3.  **Site URL**: Change this from `localhost` to your new Vercel URL.
+4.  **Redirect URLs**: Add `https://event-vault.vercel.app/**` (ensure you add the `/**` at the end).
 5.  **Save**.
+
+**Done!** Your app is now live and secure.
 
 ## 4. How "Public Access" Works Now
 
