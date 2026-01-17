@@ -206,7 +206,8 @@ export default function EventView() {
         }
     };
 
-    const getShareUrl = () => `${window.location.origin}/e/${event?.event_code}`;
+    // Use direct ID link for guaranteed access (bypasses lookup issues)
+    const getShareUrl = () => `${window.location.origin}/events/${event.id}`;
 
     const copyLink = () => {
         navigator.clipboard.writeText(getShareUrl());
