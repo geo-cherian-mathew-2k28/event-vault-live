@@ -558,27 +558,31 @@ export default function EventView() {
                     </div>
 
                     {/* Main Preview Area */}
-                    <div className="flex-1 flex items-center justify-center relative p-4 group">
+                    {/* Main Preview Area */}
+                    <div className="flex-1 w-full h-full flex items-center justify-center relative p-2 md:p-8 overflow-hidden group">
                         {/* Left Arrow */}
                         <button
                             onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
-                            className="absolute left-4 p-3 rounded-full bg-black/50 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm z-10"
+                            className="absolute left-2 md:left-4 p-2 md:p-3 rounded-full bg-black/50 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm z-10"
                         >
-                            <ChevronLeft className="h-8 w-8" />
+                            <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
                         </button>
 
-                        <img
-                            src={previewFile.file_url}
-                            className="max-h-full max-w-full object-contain shadow-2xl rounded-sm select-none"
-                            alt="Preview"
-                        />
+                        <div className="relative w-full h-full flex items-center justify-center">
+                            <img
+                                src={previewFile.file_url}
+                                className="max-w-full max-h-full w-auto h-auto object-contain select-none shadow-2xl rounded-sm"
+                                alt="Preview"
+                                style={{ maxHeight: 'calc(100vh - 80px)' }} // Ensure it fits vertically accounting for header
+                            />
+                        </div>
 
                         {/* Right Arrow */}
                         <button
                             onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
-                            className="absolute right-4 p-3 rounded-full bg-black/50 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm z-10"
+                            className="absolute right-2 md:right-4 p-2 md:p-3 rounded-full bg-black/50 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm z-10"
                         >
-                            <ChevronRight className="h-8 w-8" />
+                            <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
                         </button>
                     </div>
                 </div>
