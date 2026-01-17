@@ -535,63 +535,72 @@ export default function EventView() {
 
             {/* Full Screen Image Preview Modal */}
             {previewFile && previewFile.file_type === 'image' && (
-                <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-fade-in">
-                    {/* Preview Header */}
-                    <div className="h-16 flex items-center justify-between px-4 sm:px-6 bg-black/50 backdrop-blur-md absolute top-0 left-0 right-0 z-20">
-                        <div className="text-white/90 font-medium truncate max-w-[200px] sm:max-w-md text-shadow">{previewFile.file_name}</div>
-                        <div className="flex items-center gap-3">
+                <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in select-none">
+
+                    {/* Header Overlay (Absolute, Z-50) */}
+                    <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-black/80 via-black/40 to-transparent z-50 flex items-start pt-4 justify-between px-4 sm:px-6 pointer-events-none">
+                        <div className="pointer-events-auto max-w-[70%]">
+                            <h3 className="text-white/90 font-medium truncate text-shadow-sm">{previewFile.file_name}</h3>
+                        </div>
+                        <div className="flex items-center gap-3 pointer-events-auto">
                             <a
                                 href={previewFile.file_url}
                                 download
-                                className="p-2 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                                className="p-2 rounded-full bg-black/20 hover:bg-white/20 text-white/70 hover:text-white transition-all backdrop-blur-sm"
+                                title="Download"
                             >
                                 <Download className="h-5 w-5" />
                             </a>
                             {(isOwner || (user?.id === previewFile.uploader_id && canUpload)) && (
                                 <button
                                     onClick={(e) => handleDeleteFile(e, previewFile)}
-                                    className="p-2 rounded-full hover:bg-white/10 text-danger/80 hover:text-danger transition-colors"
+                                    className="p-2 rounded-full bg-black/20 hover:bg-red-500/20 text-white/70 hover:text-red-400 transition-all backdrop-blur-sm"
+                                    title="Delete"
                                 >
                                     <Trash2 className="h-5 w-5" />
                                 </button>
                             )}
-                            <button onClick={() => setPreviewFile(null)} className="p-2 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors">
+                            <button
+                                onClick={() => setPreviewFile(null)}
+                                className="p-2 rounded-full bg-black/20 hover:bg-white/20 text-white/70 hover:text-white transition-all backdrop-blur-sm"
+                                title="Close"
+                            >
                                 <X className="h-6 w-6" />
                             </button>
                         </div>
                     </div>
 
-                    {/* Main Preview Area */}
-                    <div className="flex-1 w-full h-full flex items-center justify-center relative bg-black overflow-hidden pt-16 pb-4">
+                    {/* Main Image Container */}
+                    <div className="relative w-full h-full flex items-center justify-center p-0 md:p-4 overflow-hidden" onClick={() => setPreviewFile(null)}>
                         {/* Left Arrow */}
                         <button
                             onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
-                            className="absolute left-2 md:left-4 p-3 rounded-full bg-black/30 text-white/50 hover:bg-black/60 hover:text-white transition-all backdrop-blur-sm z-10 active:scale-95"
+                            className={`absolute left-2 md:left-6 p-4 rounded-full text-white/70 hover:text-white hover:bg-black/20 transition-all z-20 ${images.findIndex(f => f.id === previewFile.id) <= 0 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                         >
-                            <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
+                            <ChevronLeft className="h-8 w-8 md:h-12 md:w-12 drop-shadow-lg" />
                         </button>
 
-                        <div className="relative w-full h-full flex items-center justify-center p-2">
-                            <img
-                                src={previewFile.file_url}
-                                className="object-contain shadow-2xl select-none"
-                                alt="Preview"
-                                draggable={false}
-                                style={{
-                                    maxWidth: '100%',
-                                    maxHeight: '100%',
-                                    width: 'auto',
-                                    height: 'auto'
-                                }}
-                            />
-                        </div>
+                        <img
+                            key={previewFile.id}
+                            src={previewFile.file_url}
+                            className="max-w-full max-h-full object-contain shadow-2xl transition-transform duration-200"
+                            alt={previewFile.file_name}
+                            draggable={false}
+                            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image
+                            style={{
+                                width: 'auto',
+                                height: 'auto',
+                                maxHeight: '100vh',
+                                maxWidth: '100vw'
+                            }}
+                        />
 
                         {/* Right Arrow */}
                         <button
                             onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
-                            className="absolute right-2 md:right-4 p-3 rounded-full bg-black/30 text-white/50 hover:bg-black/60 hover:text-white transition-all backdrop-blur-sm z-10 active:scale-95"
+                            className={`absolute right-2 md:right-6 p-4 rounded-full text-white/70 hover:text-white hover:bg-black/20 transition-all z-20 ${images.findIndex(f => f.id === previewFile.id) >= images.length - 1 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                         >
-                            <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
+                            <ChevronRight className="h-8 w-8 md:h-12 md:w-12 drop-shadow-lg" />
                         </button>
                     </div>
                 </div>
@@ -604,7 +613,7 @@ export default function EventView() {
                     disabled={uploading}
                     className="md:hidden fixed bottom-6 right-6 h-14 w-14 rounded-full bg-brand text-bg-base shadow-xl flex items-center justify-center z-40 active:scale-95 transition-transform"
                 >
-                    {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Plus className="h-8 w-8" />}
+                    <Plus className="h-6 w-6" />
                 </button>
             )}
 
