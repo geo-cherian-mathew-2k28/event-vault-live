@@ -61,16 +61,42 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen bg-dark-bg pt-24 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
-                <div className="glass-panel rounded-2xl p-8 mb-10 flex flex-col md:flex-row justify-between items-center gap-6 animate-slide-up relative overflow-hidden">
+                <div className="glass-panel rounded-2xl p-6 sm:p-8 mb-6 sm:mb-10 flex flex-col md:flex-row justify-between items-center gap-6 animate-slide-up relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent pointer-events-none" />
-                    <div className="relative z-10">
-                        <h1 className="text-3xl font-bold text-white tracking-tight">Command Center</h1>
-                        <p className="text-slate-400 mt-1">Manage and monitor your secure vaults</p>
+                    <div className="relative z-10 mr-auto w-full md:w-auto text-center md:text-left">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Command Center</h1>
+                        <p className="text-slate-400 mt-1 text-sm sm:text-base">Manage your secure vaults or join others.</p>
                     </div>
-                    <Link to="/events/new" className="relative z-10 btn-primary flex items-center gap-2 group">
-                        <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform" />
-                        Create New Vault
-                    </Link>
+
+                    <div className="relative z-10 flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        {/* Join Form */}
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                const code = e.target.code.value.trim().toUpperCase();
+                                if (!code) return;
+                                navigate(`/e/${code}`);
+                            }}
+                            className="relative w-full sm:w-auto"
+                        >
+                            <input
+                                name="code"
+                                type="text"
+                                placeholder="ACCESS CODE"
+                                className="w-full sm:w-48 bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all uppercase font-mono text-center sm:text-left"
+                                maxLength={6}
+                                autoCapitalize="characters"
+                            />
+                            <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white transition-colors">
+                                <ArrowRight className="h-4 w-4" />
+                            </button>
+                        </form>
+
+                        <Link to="/events/new" className="btn-primary flex items-center justify-center gap-2 group w-full sm:w-auto">
+                            <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform" />
+                            Create Vault
+                        </Link>
+                    </div>
                 </div>
 
                 {loading ? (

@@ -396,7 +396,7 @@ export default function EventView() {
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         disabled={uploading}
-                                        className="btn-primary h-9 px-3"
+                                        className="hidden md:flex btn-primary h-9 px-3"
                                     >
                                         {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                                         <span className="hidden sm:inline">Upload</span>
@@ -583,14 +583,24 @@ export default function EventView() {
                     </div>
                 </div>
             )}
-            {/* Other file types just open in new tab for now (already handled by download link or browser behavior) */}
+
+            {/* Mobile Floating Action Button (Upload) */}
+            {canUpload && !selectedFiles.size && (
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="md:hidden fixed bottom-6 right-6 h-14 w-14 rounded-full bg-brand text-bg-base shadow-xl flex items-center justify-center z-40 active:scale-95 transition-transform"
+                >
+                    {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Plus className="h-8 w-8" />}
+                </button>
+            )}
 
             {/* Share Modal (Same as before) */}
             {showShareModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-bg-surface border border-border-highlight rounded-xl w-full max-w-sm shadow-card p-6 relative">
-                        <button onClick={() => setShowShareModal(false)} className="absolute top-4 right-4 text-text-tertiary hover:text-text-primary">
-                            <X className="h-5 w-5" />
+                        <button onClick={() => setShowShareModal(false)} className="absolute top-4 right-4 text-text-tertiary hover:text-text-primary p-2">
+                            <X className="h-6 w-6" />
                         </button>
 
                         <h3 className="text-lg font-semibold text-text-primary mb-1">Share Workspace</h3>
@@ -602,16 +612,23 @@ export default function EventView() {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 bg-bg-base border border-border-subtle rounded-md p-2 mb-4">
-                            <input readOnly value={getShareUrl()} className="bg-transparent text-xs text-text-secondary w-full outline-none" />
-                            <button onClick={copyLink} className="text-brand hover:text-white">
-                                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        <div className="flex items-center gap-2 bg-bg-base border border-border-subtle rounded-md p-3 mb-4">
+                            <input readOnly value={getShareUrl()} className="bg-transparent text-sm text-text-secondary w-full outline-none" />
+                            <button onClick={copyLink} className="text-brand hover:text-white p-2">
+                                {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
                             </button>
                         </div>
 
                         <div className="text-center">
                             <div className="text-xs text-text-tertiary uppercase tracking-wider mb-1">Access Code</div>
                             <div className="text-xl font-mono font-bold text-text-primary tracking-widest">{event.event_code}</div>
+                            {/* Security Note for Owners */}
+                            {isOwner && !event.is_public && (
+                                <p className="text-[10px] text-amber-500 mt-2">
+                                    <Lock className="h-3 w-3 inline mr-1" />
+                                    Review settings to manage passkeys
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>

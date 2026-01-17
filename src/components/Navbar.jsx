@@ -93,7 +93,7 @@ export default function Navbar() {
 
             {/* Mobile menu */}
             {isOpen && (
-                <div className="md:hidden bg-dark-card border-b border-white/5 animate-fade-in absolute w-full">
+                <div className="md:hidden bg-bg-surface border-b border-white/5 animate-fade-in absolute w-full shadow-2xl">
                     <div className="px-4 pt-2 pb-4 space-y-2">
                         <MobileNavLink to="/about" onClick={() => setIsOpen(false)}>About</MobileNavLink>
                         {user ? (
@@ -102,7 +102,7 @@ export default function Navbar() {
                                 <MobileNavLink to="/events/new" onClick={() => setIsOpen(false)}>Create Event</MobileNavLink>
                                 <button
                                     onClick={() => { handleSignOut(); setIsOpen(false); }}
-                                    className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-red-400 hover:bg-white/5"
+                                    className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-danger hover:bg-white/5"
                                 >
                                     Sign Out
                                 </button>
