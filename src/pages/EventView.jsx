@@ -558,7 +558,7 @@ export default function EventView() {
                     </div>
 
                     {/* Main Preview Area */}
-                    <div className="flex-1 w-full h-full flex items-center justify-center relative bg-black overflow-hidden pt-16">
+                    <div className="flex-1 w-full h-full flex items-center justify-center relative bg-black overflow-hidden pt-16 pb-4">
                         {/* Left Arrow */}
                         <button
                             onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
@@ -567,12 +567,18 @@ export default function EventView() {
                             <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
                         </button>
 
-                        <div className="relative w-full h-full flex items-center justify-center p-1 md:p-4">
+                        <div className="relative w-full h-full flex items-center justify-center p-2">
                             <img
                                 src={previewFile.file_url}
-                                className="max-w-full max-h-full object-contain shadow-2xl select-none"
+                                className="object-contain shadow-2xl select-none"
                                 alt="Preview"
                                 draggable={false}
+                                style={{
+                                    maxWidth: '100%',
+                                    maxHeight: '100%',
+                                    width: 'auto',
+                                    height: 'auto'
+                                }}
                             />
                         </div>
 
