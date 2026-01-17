@@ -558,7 +558,6 @@ export default function EventView() {
                     </div>
 
                     {/* Main Preview Area */}
-                    {/* Main Preview Area */}
                     <div className="flex-1 w-full h-full flex items-center justify-center relative p-2 md:p-8 overflow-hidden group">
                         {/* Left Arrow */}
                         <button
@@ -571,9 +570,8 @@ export default function EventView() {
                         <div className="relative w-full h-full flex items-center justify-center">
                             <img
                                 src={previewFile.file_url}
-                                className="max-w-full max-h-full w-auto h-auto object-contain select-none shadow-2xl rounded-sm"
+                                className="w-auto h-auto max-w-full max-h-full object-contain select-none shadow-2xl rounded-sm"
                                 alt="Preview"
-                                style={{ maxHeight: 'calc(100vh - 80px)' }} // Ensure it fits vertically accounting for header
                             />
                         </div>
 

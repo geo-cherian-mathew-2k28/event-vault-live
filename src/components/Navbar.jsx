@@ -54,9 +54,17 @@ export default function Navbar() {
                                         to="/profile"
                                         className="flex items-center gap-3 p-1 pl-2 pr-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-all group"
                                     >
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-xs font-bold text-white shadow-lg">
-                                            {user.email[0].toUpperCase()}
-                                        </div>
+                                        {user.user_metadata?.avatar_url ? (
+                                            <img
+                                                src={user.user_metadata.avatar_url}
+                                                alt="Profile"
+                                                className="w-8 h-8 rounded-full object-cover border border-white/10 shadow-lg"
+                                            />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-xs font-bold text-white shadow-lg">
+                                                {user.email[0].toUpperCase()}
+                                            </div>
+                                        )}
                                         <span className="text-sm font-medium text-slate-300 group-hover:text-white">Profile</span>
                                     </Link>
                                     <button
