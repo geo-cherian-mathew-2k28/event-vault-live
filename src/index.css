@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #FFFFFF;
+  --color-brand-dim: #E2E8F0;
+
+  --color-bg-base: #08090A;
+  --color-bg-subtle: #121417;
+  --color-bg-surface: #1C1F26;
+  --color-bg-hover: #262932;
+
+  --color-border-subtle: #22262E;
+  --color-border-highlight: #3F4451;
+
+  --color-text-primary: #EDEDED;
+  --color-text-secondary: #949BA6;
+  --color-text-tertiary: #636A75;
+
+  --color-accent: #3B82F6;
+  --color-danger: #EF4444;
+  --color-success: #10B981;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-bg-base text-text-primary font-sans antialiased overflow-x-hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-bg-base;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-highlight rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-tertiary;
+  }
+}
+
+@layer components {
+
+  /* Layout */
+  .layout-container {
+    @apply max-w-[1600px] mx-auto px-6 sm:px-8;
+  }
+
+  /* Inputs */
+  .input-field {
+    @apply w-full bg-bg-subtle border border-border-subtle rounded-md px-4 py-3 text-text-primary placeholder-text-tertiary outline-none transition-all duration-200 focus:border-text-secondary focus:bg-bg-surface hover:border-border-highlight font-sans text-sm;
+  }
+
+  .input-label {
+    @apply block text-xs font-medium text-text-secondary mb-2 uppercase tracking-wider;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply bg-brand text-bg-base font-medium px-6 py-2.5 rounded-md hover:bg-brand-dim active:scale-[0.98] transition-all duration-200 shadow-sm flex items-center justify-center gap-2 text-sm;
+  }
+
+  .btn-secondary {
+    @apply bg-bg-surface text-text-secondary border border-border-subtle px-6 py-2.5 rounded-md hover:text-text-primary hover:border-text-secondary hover:bg-bg-hover active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 text-sm;
+  }
+
+  .btn-ghost {
+    @apply text-text-secondary hover:text-text-primary hover:bg-bg-subtle px-4 py-2 rounded-md transition-all duration-200 flex items-center gap-2 text-sm;
+  }
+
+  /* Cards - Explicitly defined to avoid circular reference bugs */
+  .card {
+    @apply bg-bg-surface border border-border-subtle rounded-xl p-6 hover:border-border-highlight transition-all duration-200;
+  }
+
+  .card-interactive {
+    @apply bg-bg-surface border border-border-subtle rounded-xl p-6 hover:border-border-highlight transition-all duration-200 hover:shadow-card cursor-pointer hover:-translate-y-0.5;
+  }
+
+  /* Grid */
+  .drive-grid {
+    @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4;
+  }
+
+  /* Utils */
+  .text-brand {
+    @apply text-text-primary font-semibold tracking-tight;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out forwards;
+  }
+}
