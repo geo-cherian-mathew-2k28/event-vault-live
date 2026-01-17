@@ -16,7 +16,7 @@ import EventView from './pages/EventView';
 import PublicEventViewWrapper from './components/PublicEventViewWrapper';
 
 function App() {
-  console.log("EventVault Pro - Ver 2.1 - Loaded");
+  console.log("EventVault Pro - Ver 2.2 - REFRESHED");
   return (
     <AuthProvider>
       <Router>
