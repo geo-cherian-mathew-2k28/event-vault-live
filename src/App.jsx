@@ -21,6 +21,7 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="min-h-screen bg-dark-bg text-white font-sans selection:bg-primary/30">
+          <div style={{ position: 'fixed', bottom: 0, left: 0, width: '100%', height: '2px', background: '#22c55e', zIndex: 999999, pointerEvents: 'none', opacity: 0.5 }}></div>
           <Navbar />
           <main className="flex-1">
             <Routes>
