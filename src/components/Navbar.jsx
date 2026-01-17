@@ -109,7 +109,7 @@ export default function Navbar() {
 
             {/* Mobile menu */}
             {isOpen && (
-                <div className="md:hidden bg-bg-surface border-b border-white/5 animate-fade-in absolute w-full shadow-2xl">
+                <div className="md:hidden bg-bg-surface/95 backdrop-blur-xl border-b border-white/10 animate-fade-in absolute w-full shadow-2xl z-50">
                     <div className="px-4 pt-2 pb-4 space-y-2">
                         <MobileNavLink to="/about" onClick={() => setIsOpen(false)}>About</MobileNavLink>
                         {user ? (

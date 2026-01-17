@@ -11,24 +11,33 @@ export default function PublicEventViewWrapper() {
 
     useEffect(() => {
         const resolveCode = async () => {
+            if (!code) return;
+
             try {
-                // Use RPC (V3 is case insensitive)
-                const { data, error } = await supabase.rpc('get_event_by_code', { _code: code });
+                // Try V4 Lookup (Robust, Case-Insensitive)
+                const { data, error } = await supabase.rpc('get_event_id_by_code', { code_input: code });
 
                 if (error) {
-                    console.error("RPC Error:", error);
-                    setDebugError(`Database Error: ${error.message} (Code: ${error.code})`);
+                    console.error("Lookup Error:", error);
+                    setDebugError(`System Error: ${error.message}`);
                     return;
                 }
 
                 if (data && data.length > 0) {
-                    navigate(`/events/${data[0].id}`, { replace: true });
+                    // Success: Redirect to the event ID
+                    const eventId = data[0].id;
+                    console.log(`Resolved code ${code} to ID ${eventId}`);
+                    navigate(`/events/${eventId}`, { replace: true });
                     return;
                 }
 
-                setDebugError(`Event not found. Scanned for code: "${code}". please check the URL.`);
+                // Fallback: If not found
+                console.warn(`Code ${code} yielded no results.`);
+                setDebugError(`Invalid Event Code: "${code}". Please check the link.`);
+
             } catch (err) {
-                setDebugError(`Unexpected Error: ${err.message}`);
+                console.error("Unexpected:", err);
+                setDebugError(`Network Error: ${err.message}`);
             } finally {
                 setLoading(false);
             }

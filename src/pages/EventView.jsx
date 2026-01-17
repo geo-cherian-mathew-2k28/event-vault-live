@@ -190,10 +190,13 @@ export default function EventView() {
         performDelete(filesToDelete);
     }
 
+    // Memoize images list for stable navigation
+    const images = React.useMemo(() =>
+        files.filter(f => f.file_type === 'image'),
+        [files]);
+
     const navigatePreview = (direction) => {
         if (!previewFile) return;
-        // Filter only images for navigation
-        const images = files.filter(f => f.file_type === 'image');
         const currentIndex = images.findIndex(f => f.id === previewFile.id);
         if (currentIndex === -1) return;
 
