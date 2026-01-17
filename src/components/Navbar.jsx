@@ -109,18 +109,20 @@ export default function Navbar() {
 
             {/* Mobile menu */}
             {isOpen && (
-                <div className="md:hidden bg-bg-surface/95 backdrop-blur-xl border-b border-white/10 animate-fade-in absolute w-full shadow-2xl z-50">
-                    <div className="px-4 pt-2 pb-4 space-y-2">
-                        <MobileNavLink to="/about" onClick={() => setIsOpen(false)}>About</MobileNavLink>
+                <div className="md:hidden absolute top-20 left-0 w-full bg-bg-surface border-b border-white/10 shadow-2xl z-[99999] animate-fade-in">
+                    <div className="px-4 py-6 space-y-4">
+                        <MobileNavLink to="/about" onClick={() => setIsOpen(false)}>About Platform</MobileNavLink>
                         {user ? (
                             <>
-                                <MobileNavLink to="/events" onClick={() => setIsOpen(false)}>My Events</MobileNavLink>
-                                <MobileNavLink to="/events/new" onClick={() => setIsOpen(false)}>Create Event</MobileNavLink>
+                                <MobileNavLink to="/profile" onClick={() => setIsOpen(false)}>My Profile</MobileNavLink>
+                                <MobileNavLink to="/events" onClick={() => setIsOpen(false)}>Command Center</MobileNavLink>
+                                <MobileNavLink to="/events/new" onClick={() => setIsOpen(false)}>Create New Event</MobileNavLink>
+                                <div className="h-px bg-white/10 my-2"></div>
                                 <button
                                     onClick={() => { handleSignOut(); setIsOpen(false); }}
-                                    className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-danger hover:bg-white/5"
+                                    className="w-full text-left block px-3 py-3 rounded-lg text-base font-medium text-red-400 hover:bg-white/5 transition-colors"
                                 >
-                                    Sign Out
+                                    Log Out
                                 </button>
                             </>
                         ) : (
