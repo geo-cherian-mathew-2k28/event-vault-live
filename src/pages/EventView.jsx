@@ -7,7 +7,7 @@ import {
     Loader2, Lock, Upload, File, Trash2, Download,
     Settings, Share2, Copy, Check, X, QrCode, Search,
     Grid, List as ListIcon, Folder, MoreVertical,
-    ChevronLeft, ChevronRight, CheckSquare, Maximize2
+    ChevronLeft, ChevronRight, CheckSquare, Maximize2, Plus
 } from 'lucide-react';
 
 export default function EventView() {
@@ -533,36 +533,47 @@ export default function EventView() {
                 )}
             </div>
 
-            {/* Full Screen Image Preview Modal */}
+            {/* Full Screen Image Preview Modal - Pro Fixed */}
             {previewFile && previewFile.file_type === 'image' && (
-                <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in select-none">
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        backgroundColor: 'rgba(0,0,0,0.95)',
+                        zIndex: 99999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden'
+                    }}
+                    className="animate-fade-in"
+                    onClick={() => setPreviewFile(null)}
+                >
 
-                    {/* Header Overlay (Absolute, Z-50) */}
-                    <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-black/80 via-black/40 to-transparent z-50 flex items-start pt-4 justify-between px-4 sm:px-6 pointer-events-none">
-                        <div className="pointer-events-auto max-w-[70%]">
-                            <h3 className="text-white/90 font-medium truncate text-shadow-sm">{previewFile.file_name}</h3>
-                        </div>
-                        <div className="flex items-center gap-3 pointer-events-auto">
+                    {/* Header Overlay */}
+                    <div
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', padding: '20px', zIndex: 100000, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 className="text-white font-medium text-lg truncate max-w-[70%]" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                            {previewFile.file_name}
+                        </h3>
+                        <div className="flex items-center gap-3">
                             <a
                                 href={previewFile.file_url}
                                 download
-                                className="p-2 rounded-full bg-black/20 hover:bg-white/20 text-white/70 hover:text-white transition-all backdrop-blur-sm"
+                                className="p-2 rounded-full bg-black/40 text-white hover:bg-white/20 transition-all backdrop-blur-md"
                                 title="Download"
+                                onClick={(e) => e.stopPropagation()}
                             >
-                                <Download className="h-5 w-5" />
+                                <Download className="h-6 w-6" />
                             </a>
-                            {(isOwner || (user?.id === previewFile.uploader_id && canUpload)) && (
-                                <button
-                                    onClick={(e) => handleDeleteFile(e, previewFile)}
-                                    className="p-2 rounded-full bg-black/20 hover:bg-red-500/20 text-white/70 hover:text-red-400 transition-all backdrop-blur-sm"
-                                    title="Delete"
-                                >
-                                    <Trash2 className="h-5 w-5" />
-                                </button>
-                            )}
                             <button
-                                onClick={() => setPreviewFile(null)}
-                                className="p-2 rounded-full bg-black/20 hover:bg-white/20 text-white/70 hover:text-white transition-all backdrop-blur-sm"
+                                onClick={(e) => { e.stopPropagation(); setPreviewFile(null); }}
+                                className="p-2 rounded-full bg-black/40 text-white hover:bg-white/20 transition-all backdrop-blur-md"
                                 title="Close"
                             >
                                 <X className="h-6 w-6" />
@@ -570,39 +581,40 @@ export default function EventView() {
                         </div>
                     </div>
 
-                    {/* Main Image Container */}
-                    <div className="relative w-full h-full flex items-center justify-center p-0 md:p-4 overflow-hidden" onClick={() => setPreviewFile(null)}>
-                        {/* Left Arrow */}
-                        <button
-                            onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
-                            className={`absolute left-2 md:left-6 p-4 rounded-full text-white/70 hover:text-white hover:bg-black/20 transition-all z-20 ${images.findIndex(f => f.id === previewFile.id) <= 0 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                        >
-                            <ChevronLeft className="h-8 w-8 md:h-12 md:w-12 drop-shadow-lg" />
-                        </button>
+                    {/* Navigation Buttons */}
+                    <button
+                        onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
+                        className="absolute left-4 p-4 rounded-full text-white/80 hover:text-white hover:bg-black/20 transition-all z-[100000]"
+                        style={{ display: images.findIndex(f => f.id === previewFile.id) <= 0 ? 'none' : 'block' }}
+                    >
+                        <ChevronLeft className="h-10 w-10 drop-shadow-lg" />
+                    </button>
 
-                        <img
-                            key={previewFile.id}
-                            src={previewFile.file_url}
-                            className="max-w-full max-h-full object-contain shadow-2xl transition-transform duration-200"
-                            alt={previewFile.file_name}
-                            draggable={false}
-                            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image
-                            style={{
-                                width: 'auto',
-                                height: 'auto',
-                                maxHeight: '100vh',
-                                maxWidth: '100vw'
-                            }}
-                        />
+                    <button
+                        onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
+                        className="absolute right-4 p-4 rounded-full text-white/80 hover:text-white hover:bg-black/20 transition-all z-[100000]"
+                        style={{ display: images.findIndex(f => f.id === previewFile.id) >= images.length - 1 ? 'none' : 'block' }}
+                    >
+                        <ChevronRight className="h-10 w-10 drop-shadow-lg" />
+                    </button>
 
-                        {/* Right Arrow */}
-                        <button
-                            onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
-                            className={`absolute right-2 md:right-6 p-4 rounded-full text-white/70 hover:text-white hover:bg-black/20 transition-all z-20 ${images.findIndex(f => f.id === previewFile.id) >= images.length - 1 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                        >
-                            <ChevronRight className="h-8 w-8 md:h-12 md:w-12 drop-shadow-lg" />
-                        </button>
-                    </div>
+                    {/* The Image Itself - Pure CSS Logic */}
+                    <img
+                        key={previewFile.id}
+                        src={previewFile.file_url}
+                        alt={previewFile.file_name}
+                        draggable={false}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: 'auto',
+                            height: 'auto',
+                            objectFit: 'contain',
+                            userSelect: 'none',
+                            boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                        }}
+                    />
                 </div>
             )}
 
@@ -617,7 +629,7 @@ export default function EventView() {
                 </button>
             )}
 
-            {/* Share Modal (Same as before) */}
+            {/* Share Modal */}
             {showShareModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-bg-surface border border-border-highlight rounded-xl w-full max-w-sm shadow-card p-6 relative">
