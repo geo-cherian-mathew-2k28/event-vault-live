@@ -139,7 +139,7 @@ export default function EditEvent() {
                                 <div className="flex items-center justify-between p-4 bg-bg-base rounded-lg border border-border-subtle">
                                     <div>
                                         <div className="text-sm font-medium text-text-primary mb-1">Public Access</div>
-                                        <div className="text-xs text-text-tertiary">Anyone with the link can view.</div>
+                                        <div className="text-xs text-text-tertiary">Anyone with the link can view this workspace.</div>
                                     </div>
                                     <Toggle checked={formData.is_public} onChange={(c) => setFormData({ ...formData, is_public: c })} />
                                 </div>
@@ -147,7 +147,7 @@ export default function EditEvent() {
                                 <div className="flex items-center justify-between p-4 bg-bg-base rounded-lg border border-border-subtle">
                                     <div>
                                         <div className="text-sm font-medium text-text-primary mb-1">Allow Public Uploads</div>
-                                        <div className="text-xs text-text-tertiary">Others can upload files.</div>
+                                        <div className="text-xs text-text-tertiary">Allow visitors to upload files. Uncheck for View-Only.</div>
                                     </div>
                                     <Toggle checked={formData.allow_uploads} onChange={(c) => setFormData({ ...formData, allow_uploads: c })} />
                                 </div>
