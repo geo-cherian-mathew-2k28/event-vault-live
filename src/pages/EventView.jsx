@@ -531,54 +531,55 @@ export default function EventView() {
 
             {/* Full Screen Image Preview Modal */}
             {previewFile && previewFile.file_type === 'image' && (
-                <div className="fixed inset-0 z-50 bg-bg-base/95 backdrop-blur-md flex flex-col animate-fade-in">
+                <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-fade-in">
                     {/* Preview Header */}
-                    <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
-                        <div className="text-text-primary font-medium truncate max-w-md">{previewFile.file_name}</div>
+                    <div className="h-16 flex items-center justify-between px-4 sm:px-6 bg-black/50 backdrop-blur-md absolute top-0 left-0 right-0 z-20">
+                        <div className="text-white/90 font-medium truncate max-w-[200px] sm:max-w-md text-shadow">{previewFile.file_name}</div>
                         <div className="flex items-center gap-3">
                             <a
                                 href={previewFile.file_url}
                                 download
-                                className="btn-secondary h-9 bg-transparent border-white/20 text-white hover:bg-white/10"
+                                className="p-2 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors"
                             >
-                                <Download className="h-4 w-4" />
+                                <Download className="h-5 w-5" />
                             </a>
                             {(isOwner || (user?.id === previewFile.uploader_id && canUpload)) && (
                                 <button
                                     onClick={(e) => handleDeleteFile(e, previewFile)}
-                                    className="btn-secondary h-9 bg-transparent border-white/20 text-danger hover:bg-danger/10 hover:border-danger hover:text-danger"
+                                    className="p-2 rounded-full hover:bg-white/10 text-danger/80 hover:text-danger transition-colors"
                                 >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="h-5 w-5" />
                                 </button>
                             )}
-                            <button onClick={() => setPreviewFile(null)} className="p-2 text-text-tertiary hover:text-white transition-colors">
+                            <button onClick={() => setPreviewFile(null)} className="p-2 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors">
                                 <X className="h-6 w-6" />
                             </button>
                         </div>
                     </div>
 
                     {/* Main Preview Area */}
-                    <div className="flex-1 w-full h-full flex items-center justify-center relative p-2 md:p-8 overflow-hidden group">
+                    <div className="flex-1 w-full h-full flex items-center justify-center relative bg-black overflow-hidden pt-16">
                         {/* Left Arrow */}
                         <button
                             onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
-                            className="absolute left-2 md:left-4 p-2 md:p-3 rounded-full bg-black/50 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm z-10"
+                            className="absolute left-2 md:left-4 p-3 rounded-full bg-black/30 text-white/50 hover:bg-black/60 hover:text-white transition-all backdrop-blur-sm z-10 active:scale-95"
                         >
                             <ChevronLeft className="h-6 w-6 md:h-8 md:w-8" />
                         </button>
 
-                        <div className="relative w-full h-full flex items-center justify-center">
+                        <div className="relative w-full h-full flex items-center justify-center p-1 md:p-4">
                             <img
                                 src={previewFile.file_url}
-                                className="w-auto h-auto max-w-full max-h-full object-contain select-none shadow-2xl rounded-sm"
+                                className="max-w-full max-h-full object-contain shadow-2xl select-none"
                                 alt="Preview"
+                                draggable={false}
                             />
                         </div>
 
                         {/* Right Arrow */}
                         <button
                             onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
-                            className="absolute right-2 md:right-4 p-2 md:p-3 rounded-full bg-black/50 text-white/50 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm z-10"
+                            className="absolute right-2 md:right-4 p-3 rounded-full bg-black/30 text-white/50 hover:bg-black/60 hover:text-white transition-all backdrop-blur-sm z-10 active:scale-95"
                         >
                             <ChevronRight className="h-6 w-6 md:h-8 md:w-8" />
                         </button>

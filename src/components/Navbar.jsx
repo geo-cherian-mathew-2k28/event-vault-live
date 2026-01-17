@@ -58,13 +58,21 @@ export default function Navbar() {
                                             <img
                                                 src={user.user_metadata.avatar_url}
                                                 alt="Profile"
-                                                className="w-8 h-8 rounded-full object-cover border border-white/10 shadow-lg"
+                                                className="w-8 h-8 rounded-full object-cover border border-white/10 shadow-lg bg-bg-surface"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'flex';
+                                                }}
                                             />
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-xs font-bold text-white shadow-lg">
-                                                {user.email[0].toUpperCase()}
-                                            </div>
-                                        )}
+                                        ) : null}
+
+                                        <div
+                                            className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-xs font-bold text-white shadow-lg"
+                                            style={{ display: user.user_metadata?.avatar_url ? 'none' : 'flex' }}
+                                        >
+                                            {user.email[0].toUpperCase()}
+                                        </div>
+
                                         <span className="text-sm font-medium text-slate-300 group-hover:text-white">Profile</span>
                                     </Link>
                                     <button

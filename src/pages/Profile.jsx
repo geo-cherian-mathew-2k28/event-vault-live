@@ -97,14 +97,18 @@ export default function Profile() {
                 <div className="glass-panel rounded-2xl p-8 animate-slide-up">
                     <div className="text-center mb-8 relative">
                         <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-primary to-accent p-1">
-                            <div className="w-full h-full rounded-full bg-dark-card overflow-hidden">
-                                {profile.avatar_url ? (
-                                    <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-500">
-                                        <User className="h-10 w-10" />
-                                    </div>
+                            <div className="w-full h-full rounded-full bg-dark-card overflow-hidden flex items-center justify-center relative">
+                                {profile.avatar_url && (
+                                    <img
+                                        src={profile.avatar_url}
+                                        alt="Profile"
+                                        className="w-full h-full object-cover absolute inset-0"
+                                        onError={(e) => e.target.style.display = 'none'}
+                                    />
                                 )}
+                                <div className="z-0">
+                                    <User className="h-10 w-10 text-white/50" />
+                                </div>
                             </div>
                         </div>
                         <h1 className="text-2xl font-bold mt-4 text-white">Your Profile</h1>
