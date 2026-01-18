@@ -13,10 +13,11 @@ import Dashboard from './pages/Dashboard';
 import CreateEvent from './pages/CreateEvent';
 import EditEvent from './pages/EditEvent';
 import EventView from './pages/EventView';
+import ResetPassword from './pages/ResetPassword';
 import PublicEventViewWrapper from './components/PublicEventViewWrapper';
 
 function App() {
-  console.log("EventVault Pro - Ver 2.2 - REFRESHED");
+  console.log("Memora - Secure Event Sharing");
   return (
     <AuthProvider>
       <Router>
@@ -29,6 +30,7 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/register" element={<Register />} />
               <Route path="/events" element={<Dashboard />} />
               <Route path="/events/new" element={<CreateEvent />} />

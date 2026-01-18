@@ -59,7 +59,7 @@ export default function Register() {
             <div className="w-full max-w-md mx-auto">
                 <Link to="/" className="flex items-center justify-center gap-2 mb-8 group">
                     <Shield className="h-8 w-8 text-brand" />
-                    <span className="text-2xl font-bold text-text-primary tracking-tight">EventVault</span>
+                    <span className="text-2xl font-bold text-text-primary tracking-tight">Memora</span>
                 </Link>
 
                 <div className="bg-bg-surface border border-border-subtle rounded-xl p-8 shadow-card">

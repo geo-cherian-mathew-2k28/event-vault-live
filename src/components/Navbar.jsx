@@ -39,7 +39,7 @@ export default function Navbar() {
                             <NavLink to="/about" active={isActive('/about')}>About</NavLink>
                             {user ? (
                                 <>
-                                    <NavLink to="/events" active={isActive('/events')}>Command Center</NavLink>
+                                    <NavLink to="/events" active={isActive('/events')}>Dashboard</NavLink>
                                     <div className="h-6 w-px bg-white/10" />
                                     <Link
                                         to="/events/new"
@@ -115,7 +115,7 @@ export default function Navbar() {
                         {user ? (
                             <>
                                 <MobileNavLink to="/profile" onClick={() => setIsOpen(false)}>My Profile</MobileNavLink>
-                                <MobileNavLink to="/events" onClick={() => setIsOpen(false)}>Command Center</MobileNavLink>
+                                <MobileNavLink to="/events" onClick={() => setIsOpen(false)}>Dashboard</MobileNavLink>
                                 <MobileNavLink to="/events/new" onClick={() => setIsOpen(false)}>Create New Event</MobileNavLink>
                                 <div className="h-px bg-white/10 my-2"></div>
                                 <button

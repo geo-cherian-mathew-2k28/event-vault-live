@@ -38,7 +38,7 @@ export default function Login() {
                     throw new Error("Account pending verification. Run the SQL script provided.");
                 }
                 if (error.message.includes("Invalid login")) {
-                    throw new Error("Incorrect password. If you used the Reset Script, your password is 'password123'.");
+                    throw new Error("Incorrect email or password.");
                 }
                 throw error;
             }
@@ -58,13 +58,13 @@ export default function Login() {
             <div className="w-full max-w-md mx-auto">
                 <Link to="/" className="flex items-center justify-center gap-2 mb-8 group">
                     <Shield className="h-8 w-8 text-brand" />
-                    <span className="text-2xl font-bold text-text-primary tracking-tight">EventVault</span>
+                    <span className="text-2xl font-bold text-text-primary tracking-tight">Memora</span>
                 </Link>
 
                 <div className="bg-bg-surface border border-border-subtle rounded-xl p-8 shadow-card">
                     <div className="mb-8 text-center">
                         <h2 className="text-xl font-semibold text-text-primary mb-2">Welcome back</h2>
-                        <p className="text-text-secondary text-sm">Enter your credentials to access the portal.</p>
+                        <p className="text-text-secondary text-sm">Sign in to your account.</p>
                     </div>
 
                     {error && (
@@ -122,7 +122,7 @@ export default function Login() {
                             disabled={loading}
                             className="btn-primary w-full justify-center"
                         >
-                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Authenticate'}
+                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
                         </button>
                     </form>
 

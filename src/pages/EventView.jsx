@@ -259,7 +259,7 @@ export default function EventView() {
                     {!user && (
                         <div className="mt-6 text-center">
                             <button onClick={() => navigate('/login')} className="text-sm text-text-secondary hover:text-text-primary underline">
-                                Log in as Administrator
+                                Log in to access
                             </button>
                         </div>
                     )}
