@@ -28,11 +28,11 @@ export default function Home() {
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-bold text-text-primary tracking-tight mb-6">
-                        EventVault
+                        Memora
                     </h1>
                     <p className="text-xl text-text-secondary font-light max-w-lg mx-auto leading-relaxed">
-                        Professional access portal for secure event media.
-                        Enter your credentials to proceed.
+                        Capture. Collect. Cherish.
+                        The seamless way to gather photos from every guest.
                     </p>
                 </div>
 
@@ -43,7 +43,7 @@ export default function Home() {
                             <Search className="absolute left-4 h-5 w-5 text-text-tertiary" />
                             <input
                                 type="text"
-                                placeholder="Enter 6-digit Event Code"
+                                placeholder="Enter Event Code"
                                 className="w-full bg-transparent text-lg text-text-primary placeholder-text-tertiary px-12 py-4 outline-none font-mono uppercase tracking-widest"
                                 value={eventCode}
                                 onChange={(e) => setEventCode(e.target.value)}
@@ -68,7 +68,7 @@ export default function Home() {
                         ) : (
                             <>
                                 <Link to="/login" className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">
-                                    Admin Login
+                                    Log In
                                 </Link>
                                 <span className="text-border-subtle">|</span>
                                 <Link to="/register" className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">

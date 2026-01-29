@@ -7,8 +7,12 @@ import {
     Loader2, Lock, Upload, File, Trash2, Download,
     Settings, Share2, Copy, Check, X, QrCode, Search,
     Grid, List as ListIcon, Folder, MoreVertical,
-    ChevronLeft, ChevronRight, CheckSquare, Maximize2, Plus
+    ChevronLeft, ChevronRight, CheckSquare, Maximize2, Plus, LogOut,
+    PlayCircle, Film
 } from 'lucide-react';
+import { Shield } from 'lucide-react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 export default function EventView() {
     const { id } = useParams();
@@ -25,6 +29,14 @@ export default function EventView() {
     const [uploading, setUploading] = useState(false);
     const [viewMode, setViewMode] = useState('grid');
     const [searchTerm, setSearchTerm] = useState('');
+
+    const getFormattedFileType = (file) => {
+        if (file.file_type === 'image' || file.file_type === 'video') return file.file_type;
+        const ext = file.file_name?.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif'].includes(ext)) return 'image';
+        if (['mp4', 'mov', 'webm', 'ogg', 'avi', 'mkv'].includes(ext)) return 'video';
+        return 'file';
+    };
 
     // Filter files based on search
     const filteredFiles = files.filter(f =>
@@ -45,8 +57,11 @@ export default function EventView() {
     const fileInputRef = useRef(null);
 
     useEffect(() => {
+        if (location.state?.code) {
+            setJoinCode(location.state.code);
+        }
         loadEvent();
-    }, [id, user]);
+    }, [id, user, location.state]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -66,7 +81,7 @@ export default function EventView() {
                 .from('events')
                 .select('*')
                 .eq('id', id)
-                .single();
+                .maybeSingle();
 
             if (!eventError && eventData) {
                 setEvent(eventData);
@@ -78,7 +93,7 @@ export default function EventView() {
                 setFiles(fileData || []);
             }
         } catch (err) {
-            console.log('Access denied initially');
+            console.log('Access denied initially or event not found', err);
         } finally {
             setLoading(false);
         }
@@ -94,8 +109,8 @@ export default function EventView() {
             }
 
             const { data, error } = await supabase.rpc('join_event', {
-                input_code: joinCode.toUpperCase(),
-                input_passkey: joinPasskey
+                input_code: joinCode.trim().toUpperCase(),
+                input_passkey: joinPasskey.trim()
             });
 
             if (error) throw error;
@@ -135,7 +150,7 @@ export default function EventView() {
                     uploader_id: user.id,
                     file_url: publicUrl,
                     storage_path: filePath,
-                    file_type: file.type.startsWith('image/') ? 'image' : 'file',
+                    file_type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file',
                     file_name: file.name,
                     size_bytes: file.size
                 });
@@ -190,19 +205,30 @@ export default function EventView() {
         performDelete(filesToDelete);
     }
 
-    // Memoize images list for stable navigation
-    const images = React.useMemo(() =>
-        files.filter(f => f.file_type === 'image'),
+    // Memoize images/videos list for stable navigation
+    const mediaFiles = React.useMemo(() =>
+        files.filter(f => ['image', 'video'].includes(getFormattedFileType(f))),
         [files]);
 
     const navigatePreview = (direction) => {
         if (!previewFile) return;
-        const currentIndex = images.findIndex(f => f.id === previewFile.id);
+        const currentIndex = mediaFiles.findIndex(f => f.id === previewFile.id);
         if (currentIndex === -1) return;
 
         const newIndex = currentIndex + direction;
-        if (newIndex >= 0 && newIndex < images.length) {
-            setPreviewFile(images[newIndex]);
+        if (newIndex >= 0 && newIndex < mediaFiles.length) {
+            setPreviewFile(mediaFiles[newIndex]);
+        }
+    };
+
+    const downloadFile = async (url, filename) => {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            saveAs(blob, filename);
+        } catch (error) {
+            console.error('Download failed:', error);
+            alert('Download failed. Please try again.');
         }
     };
 
@@ -215,7 +241,11 @@ export default function EventView() {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    if (loading) return <div className="min-h-screen bg-bg-base flex items-center justify-center"><Loader2 className="animate-spin text-text-primary" /></div>;
+    if (loading) return (
+        <div className="min-h-screen bg-bg-base flex items-center justify-center">
+            <Loader2 className="animate-spin text-text-primary h-8 w-8" />
+        </div>
+    );
 
     // PRIVATE / JOIN SCREEN
     if (!event) {
@@ -271,6 +301,14 @@ export default function EventView() {
     const isOwner = user?.id === event.owner_id;
     const canUpload = isOwner || event.allow_uploads;
 
+    const handleLeaveEvent = async () => {
+        if (!confirm("Remove access to this private event? You will need the passkey to rejoin.")) return;
+        try {
+            await supabase.from('event_members').delete().match({ event_id: id, user_id: user.id });
+            window.location.reload();
+        } catch (e) { alert(e.message); }
+    };
+
     return (
         <div className="min-h-screen bg-bg-base pt-16 flex flex-col">
             {/* Toolbar / Header */}
@@ -288,8 +326,6 @@ export default function EventView() {
                                     const count = selectedFiles.size;
                                     if (!confirm(`Download ${count} files as ZIP?`)) return;
 
-                                    const JSZip = (await import('jszip')).default;
-                                    const { saveAs } = await import('file-saver');
                                     const zip = new JSZip();
                                     const folder = zip.folder(`Selected_Files`);
 
@@ -332,10 +368,24 @@ export default function EventView() {
                                 <h1 className="text-sm font-semibold text-text-primary flex items-center gap-2">
                                     {event.name}
                                     {!event.is_public && <Lock className="h-3 w-3 text-text-tertiary" />}
+                                    {isOwner && <span className="text-[10px] bg-brand/20 text-brand px-1.5 py-0.5 rounded border border-brand/20">OWNER</span>}
                                 </h1>
                                 <div className="text-xs text-text-tertiary truncate max-w-[200px] sm:max-w-md">
                                     {files.length} items • Last updated today
                                 </div>
+                            </div>
+
+                            {/* Security Context Badge */}
+                            <div className="hidden md:block ml-4">
+                                {isOwner ? (
+                                    <div className="text-[10px] bg-brand/10 text-brand px-2 py-1 rounded border border-brand/20 flex items-center gap-1.5 cursor-help" title="As the owner, you bypass the passkey lock screen.">
+                                        <Shield className="h-3 w-3" /> OWNER ACCESS
+                                    </div>
+                                ) : (
+                                    <div className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded border border-emerald-500/20 flex items-center gap-1.5 cursor-help" title="You have authenticated successfully.">
+                                        <Check className="h-3 w-3" /> MEMBER ACCESS
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -351,8 +401,6 @@ export default function EventView() {
                                 <button
                                     onClick={async () => {
                                         if (!confirm('Download all files as ZIP?')) return;
-                                        const JSZip = (await import('jszip')).default;
-                                        const { saveAs } = await import('file-saver');
                                         const zip = new JSZip();
                                         const folder = zip.folder(event.name || 'EventFiles');
 
@@ -384,6 +432,13 @@ export default function EventView() {
                             {isOwner && (
                                 <button onClick={() => navigate(`/events/${id}/edit`)} className="btn-secondary h-9 px-3">
                                     <Settings className="h-4 w-4" />
+                                </button>
+                            )}
+
+                            {/* Leave Event (For Members) */}
+                            {!isOwner && !event.is_public && user && (
+                                <button onClick={handleLeaveEvent} className="btn-secondary h-9 px-3 text-rose-400 hover:text-rose-300 border-rose-500/30 hover:bg-rose-500/10" title="Leave Event (Relock)">
+                                    <LogOut className="h-4 w-4" />
                                 </button>
                             )}
 
@@ -466,14 +521,30 @@ export default function EventView() {
                                         </div>
 
                                         {/* File Preview */}
-                                        <div className="flex-1 bg-bg-subtle relative overflow-hidden">
-                                            {file.file_type === 'image' ? (
-                                                <img src={file.file_url} className="w-full h-full object-cover" loading="lazy" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <File className="h-10 w-10 text-text-tertiary" />
-                                                </div>
-                                            )}
+                                        <div className="flex-1 bg-bg-subtle relative overflow-hidden flex items-center justify-center">
+                                            {(() => {
+                                                const type = getFormattedFileType(file);
+                                                if (type === 'image') {
+                                                    // Optimization: Use Supabase Image Transformation for thumbnails
+                                                    return <img
+                                                        src={`${file.file_url}?width=300&resize=cover`}
+                                                        className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500"
+                                                        loading="lazy"
+                                                        decoding="async"
+                                                    />;
+                                                }
+                                                if (type === 'video') return (
+                                                    <div className="relative w-full h-full bg-black flex items-center justify-center">
+                                                        <video src={file.file_url} className="w-full h-full object-cover opacity-80" preload="metadata" />
+                                                        <PlayCircle className="absolute h-10 w-10 text-white/80 drop-shadow-lg" />
+                                                    </div>
+                                                );
+                                                return (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <File className="h-10 w-10 text-text-tertiary" />
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
 
                                         {/* Footer */}
@@ -514,14 +585,28 @@ export default function EventView() {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 flex items-center gap-3">
-                                                    {file.file_type === 'image' ? <File className="h-4 w-4 text-accent" /> : <File className="h-4 w-4 text-text-tertiary" />}
+                                                    {(() => {
+                                                        const type = getFormattedFileType(file);
+                                                        if (type === 'image') return <File className="h-4 w-4 text-accent" />;
+                                                        if (type === 'video') return <Film className="h-4 w-4 text-blue-400" />;
+                                                        return <File className="h-4 w-4 text-text-tertiary" />;
+                                                    })()}
                                                     <span className="text-text-primary truncate max-w-xs">{file.file_name}</span>
                                                 </td>
                                                 <td className="px-4 py-3 text-text-secondary text-xs font-mono">
                                                     {(file.size_bytes / 1024 / 1024).toFixed(2)} MB
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <a href={file.file_url} download onClick={e => e.stopPropagation()} className="text-text-tertiary hover:text-text-primary inline-block"><Download className="h-4 w-4" /></a>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            downloadFile(file.file_url, file.file_name);
+                                                        }}
+                                                        className="text-text-tertiary hover:text-text-primary inline-block transition-colors"
+                                                        title="Download"
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -533,8 +618,8 @@ export default function EventView() {
                 )}
             </div>
 
-            {/* Full Screen Image Preview Modal - Pro Fixed */}
-            {previewFile && previewFile.file_type === 'image' && (
+            {/* Full Screen Image/Video Preview Modal */}
+            {previewFile && ['image', 'video'].includes(getFormattedFileType(previewFile)) && (
                 <div
                     style={{
                         position: 'fixed',
@@ -562,15 +647,16 @@ export default function EventView() {
                             {previewFile.file_name}
                         </h3>
                         <div className="flex items-center gap-3">
-                            <a
-                                href={previewFile.file_url}
-                                download
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    downloadFile(previewFile.file_url, previewFile.file_name);
+                                }}
                                 className="p-2 rounded-full bg-black/40 text-white hover:bg-white/20 transition-all backdrop-blur-md"
                                 title="Download"
-                                onClick={(e) => e.stopPropagation()}
                             >
                                 <Download className="h-6 w-6" />
-                            </a>
+                            </button>
                             <button
                                 onClick={(e) => { e.stopPropagation(); setPreviewFile(null); }}
                                 className="p-2 rounded-full bg-black/40 text-white hover:bg-white/20 transition-all backdrop-blur-md"
@@ -585,7 +671,7 @@ export default function EventView() {
                     <button
                         onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
                         className="absolute left-4 p-4 rounded-full text-white/80 hover:text-white hover:bg-black/20 transition-all z-[100000]"
-                        style={{ display: images.findIndex(f => f.id === previewFile.id) <= 0 ? 'none' : 'block' }}
+                        style={{ display: mediaFiles.findIndex(f => f.id === previewFile.id) <= 0 ? 'none' : 'block' }}
                     >
                         <ChevronLeft className="h-10 w-10 drop-shadow-lg" />
                     </button>
@@ -593,28 +679,40 @@ export default function EventView() {
                     <button
                         onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
                         className="absolute right-4 p-4 rounded-full text-white/80 hover:text-white hover:bg-black/20 transition-all z-[100000]"
-                        style={{ display: images.findIndex(f => f.id === previewFile.id) >= images.length - 1 ? 'none' : 'block' }}
+                        style={{ display: mediaFiles.findIndex(f => f.id === previewFile.id) >= mediaFiles.length - 1 ? 'none' : 'block' }}
                     >
                         <ChevronRight className="h-10 w-10 drop-shadow-lg" />
                     </button>
 
-                    {/* The Image Itself - Pure CSS Logic */}
-                    <img
-                        key={previewFile.id}
-                        src={previewFile.file_url}
-                        alt={previewFile.file_name}
-                        draggable={false}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                            width: 'auto',
-                            height: 'auto',
-                            objectFit: 'contain',
-                            userSelect: 'none',
-                            boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
-                        }}
-                    />
+                    {/* Content Preview */}
+                    {getFormattedFileType(previewFile) === 'video' ? (
+                        <video
+                            src={previewFile.file_url}
+                            controls
+                            autoPlay
+                            playsInline
+                            className="max-h-full max-w-full"
+                            style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    ) : (
+                        <img
+                            key={previewFile.id}
+                            src={previewFile.file_url}
+                            alt={previewFile.file_name}
+                            draggable={false}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                width: 'auto',
+                                height: 'auto',
+                                objectFit: 'contain',
+                                userSelect: 'none',
+                                boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                            }}
+                        />
+                    )}
                 </div>
             )}
 

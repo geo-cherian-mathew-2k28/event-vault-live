@@ -27,7 +27,7 @@ export default function PublicEventViewWrapper() {
                     // Success: Redirect to the event ID
                     const eventId = data[0].id;
                     console.log(`Resolved code ${code} to ID ${eventId}`);
-                    navigate(`/events/${eventId}`, { replace: true });
+                    navigate(`/events/${eventId}`, { replace: true, state: { code: code } });
                     return;
                 }
 

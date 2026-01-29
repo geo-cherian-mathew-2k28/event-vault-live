@@ -29,7 +29,7 @@ export default function Navbar() {
                                 </div>
                             </div>
                             <span className="text-xl font-bold tracking-tight text-white">
-                                EventVault
+                                Memora
                             </span>
                         </Link>
                     </div>

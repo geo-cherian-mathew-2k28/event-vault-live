@@ -19,9 +19,37 @@ export const AuthProvider = ({ children }) => {
 
         // Listen for changes on auth state (logged in, signed out, etc.)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            setUser(session?.user ?? null);
+            if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+                setUser(null);
+            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                setUser(session?.user ?? null);
+            }
             setLoading(false);
         });
+
+        // Intercept 400 errors for "Refresh Token Not Found" and force signout
+        const originalFetch = window.fetch;
+        window.fetch = async (...args) => {
+            const response = await originalFetch(...args);
+            // Check if it's a Supabase request that failed with specific auth errors
+            if (response.status === 400 || response.status === 401) {
+                // We can't easily parse the body without consuming it, so we clone
+                const clone = response.clone();
+                try {
+                    const errorData = await clone.json();
+                    if (errorData?.error_description === 'Invalid refresh token' ||
+                        errorData?.msg === 'Invalid refresh token' ||
+                        errorData?.message === 'Invalid Refresh Token: Refresh Token Not Found') {
+                        console.warn("Session expired or invalid. Logging out.");
+                        await supabase.auth.signOut();
+                        setUser(null);
+                        // Optional: Clear local storage items related to supabase
+                        localStorage.removeItem('sb-bxuzhfcnzuonnwgmgrnv-auth-token');
+                    }
+                } catch (e) { /* ignore JSON parse errors */ }
+            }
+            return response;
+        };
 
         return () => subscription.unsubscribe();
     }, []);
