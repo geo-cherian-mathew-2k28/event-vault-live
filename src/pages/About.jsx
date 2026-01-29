@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion, useScroll, useSpring } from 'framer-motion';
 import {
     Shield, Activity, Zap, HardDrive,
     ExternalLink, ArrowRight, Layers,
@@ -30,10 +30,14 @@ export default function About() {
             {/* ATMOSPHERIC LAYER */}
             <div className="fixed inset-0 z-0 pointer-events-none">
                 <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 blur-[150px] rounded-full -mr-96 -mt-96 opacity-40" />
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.1] mix-blend-overlay" />
+                <div className="absolute inset-0 opacity-[0.03]"
+                    style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
+                    }}
+                />
             </div>
 
-            {/* HERO: THE ARCHITECTURE MANIFESTO */}
+            {/* HERO */}
             <section className="relative z-10 pt-32 pb-40 px-6 max-w-7xl mx-auto flex flex-col items-center">
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -41,7 +45,7 @@ export default function About() {
                     className="inline-flex items-center gap-2 px-3 py-1 bg-white/[0.03] border border-white/10 rounded-full mb-12 backdrop-blur-md"
                 >
                     <Command className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/50">Infrastructure Manifesto v4.0</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/50">Infrastructure v4.0</span>
                 </motion.div>
 
                 <h1 className="text-[12vw] md:text-8xl lg:text-[11rem] font-bold tracking-tighter uppercase italic leading-[0.8] mb-12 text-center">
@@ -59,12 +63,11 @@ export default function About() {
             <section className="relative z-10 px-6 py-20 max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
-                    {/* PRIMARY PILLAR */}
                     <AboutBento
                         className="md:col-span-8 h-[400px]"
                         icon={<Shield className="text-primary" />}
-                        title="Isolation Protocol"
-                        desc="Native Row Level Security (RLS) handles data isolation at the core database level, ensuring your media is physically and logically invisible to unauthorized vectors."
+                        title="Isolation Layer"
+                        desc="Native Row Level Security (RLS) handles data isolation at the core database level, ensuring your media is logically invisible to unauthorized vectors."
                         tag="CORE SECURITY"
                     />
 
@@ -72,8 +75,8 @@ export default function About() {
                         className="md:col-span-4 h-[400px]"
                         icon={<Zap className="text-amber-500" />}
                         title="Edge Speed"
-                        desc="Optimized for millisecond retrieval globally."
-                        tag="PERFORMANCE"
+                        desc="Optimized global retrieval nodes."
+                        tag="LATENCY"
                     />
 
                     <AboutBento
@@ -81,18 +84,17 @@ export default function About() {
                         icon={<HardDrive className="text-blue-500" />}
                         title="1:1 Fidelity"
                         desc="Zero archival compression policy."
-                        tag="QUALITY"
+                        tag="INTEGRITY"
                     />
 
-                    {/* DYNAMIC INTEGRITY DASHBOARD */}
                     <AboutBento
                         className="md:col-span-8 h-[400px] bg-primary/5 border-primary/20"
-                        icon={<Activity className="text-primary animate-pulse" />}
-                        title="System Integrity Monitor"
+                        icon={<Activity className="text-primary" />}
+                        title="Integrity Monitor"
                         desc="Real-time operational health feedback for the Memora production environment."
                         tag="LIVE DIAGNOSTICS"
                     >
-                        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10">
+                        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10 text-left">
                             <StatTile label="DB ENGINE" value="NOMINAL" />
                             <StatTile label="AUTH GATE" value="ACTIVE" />
                             <StatTile label="CDN EDGE" value="READY" />
@@ -102,7 +104,7 @@ export default function About() {
                 </div>
             </section>
 
-            {/* ENGINEER SIGNATURE SECTION */}
+            {/* SIGNATURE SECTION */}
             <section className="relative z-10 py-64 px-6 overflow-hidden border-t border-white/5 bg-white/[0.01]">
                 <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-24 items-center">
                     <div className="text-left">
@@ -132,8 +134,8 @@ export default function About() {
                 </div>
             </section>
 
-            {/* INVESTOR FOOTER */}
-            <footer className="py-20 px-6 border-t border-white/5 bg-[#000]">
+            {/* FOOTER */}
+            <footer className="py-20 px-6 border-t border-white/5 bg-black">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12 text-[9px] font-black text-white/20 uppercase tracking-[0.6em] italic">
                     <div className="flex gap-12">
                         <Link to="/" className="hover:text-primary transition-colors">Home</Link>
@@ -150,7 +152,7 @@ export default function About() {
 function AboutBento({ className, icon, title, desc, tag, children }) {
     return (
         <div className={`p-10 md:p-14 rounded-[3.5rem] bg-white/[0.01] border border-white/5 hover:border-white/10 transition-all group flex flex-col justify-between overflow-hidden relative ${className}`}>
-            <div className="relative z-10">
+            <div className="relative z-10 text-left">
                 <div className="flex justify-between items-start mb-12">
                     <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary transition-all duration-500">
                         {React.cloneElement(icon, { size: 24, strokeWidth: 1.5, className: 'group-hover:text-white transition-colors' })}
@@ -158,7 +160,7 @@ function AboutBento({ className, icon, title, desc, tag, children }) {
                     <span className="text-[9px] font-black text-primary uppercase tracking-[0.4em] px-4 py-2 bg-primary/5 border border-primary/10 rounded-full">{tag}</span>
                 </div>
                 <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-6 leading-none">{title}</h3>
-                <p className="text-lg font-bold text-white/30 uppercase italic tracking-tighter leading-snug max-w-sm group-hover:text-white/60 transition-colors">{desc}</p>
+                <p className="text-lg font-bold text-white/30 uppercase italic tracking-tighter leading-snug max-w-sm group-hover:text-white/60 transition-colors uppercase">{desc}</p>
             </div>
             {children}
             <div className="absolute -bottom-10 -right-10 opacity-[0.02] group-hover:opacity-[0.06] transition-opacity">

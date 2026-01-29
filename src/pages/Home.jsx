@@ -25,21 +25,21 @@ export default function Home() {
     return (
         <div className="min-h-screen bg-[#020202] text-white selection:bg-primary/30 font-sans antialiased overflow-x-hidden">
 
-            {/* AMBIENT TEXTURE LAYER */}
+            {/* AMBIENT BACKGROUND */}
             <div className="fixed inset-0 z-0 pointer-events-none">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[800px] bg-[radial-gradient(circle_at_50%_0%,rgba(var(--primary-rgb),0.1)_0%,transparent_70%)]" />
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] brightness-200 contrast-150 mix-blend-overlay" />
-                <div className="absolute inset-0 opacity-[0.02]"
+
+                {/* CSS Noise Fallback (No external URL) */}
+                <div className="absolute inset-0 opacity-[0.03]"
                     style={{
-                        backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
-                        backgroundSize: '80px 80px'
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
                     }}
                 />
             </div>
 
             <main className="relative z-10 pt-28 md:pt-48 pb-32 px-6 max-w-7xl mx-auto flex flex-col items-center">
 
-                {/* HIGH-IMPACT HERO */}
+                {/* HERO SECTION */}
                 <div className="text-center mb-20 md:mb-32 w-full">
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
@@ -50,7 +50,7 @@ export default function Home() {
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                         </span>
-                        <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.4em]">v2.5 Architecture Live</span>
+                        <span className="text-[10px] font-black text-white/50 uppercase tracking-[0.4em]">Infrastructure Live</span>
                     </motion.div>
 
                     <h1 className="text-[14vw] md:text-8xl lg:text-[10rem] font-bold tracking-tighter leading-[0.8] mb-12 uppercase italic">
@@ -63,10 +63,9 @@ export default function Home() {
                     </p>
                 </div>
 
-                {/* THE CORE PORTAL - HIGH TACTILE DESIGN */}
+                {/* THE PORTAL */}
                 <div className="w-full max-w-2xl mx-auto mb-48 px-2 md:px-0">
                     <div className="relative group">
-                        {/* Outer Glow */}
                         <div className={`absolute -inset-4 bg-primary/10 blur-[60px] rounded-[3rem] transition-opacity duration-1000 ${isFocused ? 'opacity-100' : 'opacity-0'}`} />
 
                         <motion.div
@@ -80,12 +79,12 @@ export default function Home() {
                                         <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
                                             <Lock className="h-5 w-5 text-primary" />
                                         </div>
-                                        <div className="hidden md:block">
-                                            <div className="text-[10px] font-black text-white/40 uppercase tracking-widest">Protocol-01</div>
-                                            <div className="text-[9px] font-bold text-primary uppercase tracking-[0.2em] animate-pulse">Established</div>
+                                        <div className="hidden md:block text-left">
+                                            <div className="text-[10px] font-black text-white/40 uppercase tracking-widest">Authorized Access</div>
+                                            <div className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">Encrypted Link</div>
                                         </div>
                                     </div>
-                                    <div className="flex gap-1.5 grayscale opacity-20">
+                                    <div className="flex gap-1.5 opacity-20 grayscale">
                                         <div className="h-1.5 w-6 bg-white rounded-full" />
                                         <div className="h-1.5 w-1.5 bg-white rounded-full" />
                                         <div className="h-1.5 w-1.5 bg-white rounded-full" />
@@ -117,7 +116,7 @@ export default function Home() {
                                 <div className="mt-12 pt-10 border-t border-white/5 flex flex-wrap gap-4">
                                     {user ? (
                                         <Link to="/events" className="flex-1 h-16 bg-white/5 border border-white/10 text-white rounded-2xl flex items-center justify-center gap-3 font-black text-[10px] uppercase tracking-[0.4em] hover:bg-white/10 transition-all">
-                                            Go to Dashboard <ChevronRight className="h-4 w-4" />
+                                            Open Dashboard <ChevronRight className="h-4 w-4" />
                                         </Link>
                                     ) : (
                                         <>
@@ -135,39 +134,37 @@ export default function Home() {
                     </div>
                 </div>
 
-                {/* VENTURE PILLARS - BENTO STYLE */}
-                <div className="w-full max-w-5xl mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                        <HomeBento
-                            className="md:col-span-8 h-[300px]"
-                            icon={<ShieldCheck className="text-primary" />}
-                            title="Zero-Leak Infrastructure"
-                            desc="Leveraging AWS S3 and Postgres RLS to ensure hardware-level isolation of your private media assets."
-                        />
-                        <HomeBento
-                            className="md:col-span-4 h-[300px]"
-                            icon={<Zap className="text-amber-500" />}
-                            title="Edge Fidelity"
-                            desc="Global distribution nodes."
-                        />
-                        <HomeBento
-                            className="md:col-span-4 h-[300px]"
-                            icon={<HardDrive className="text-blue-500" />}
-                            title="1:1 Raw Archival"
-                            desc="Zero compression policy."
-                        />
-                        <HomeBento
-                            className="md:col-span-8 h-[300px]"
-                            icon={<Fingerprint className="text-emerald-500" />}
-                            title="Asymmetric Security"
-                            desc="Cryptographically signed links and session-based access tokens provide an unbreakable shield around your event memories."
-                        />
-                    </div>
+                {/* BENTO GRID */}
+                <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <HomeBento
+                        className="md:col-span-8 h-[300px]"
+                        icon={<ShieldCheck className="text-primary" />}
+                        title="Isolation Stack"
+                        desc="Native Row Level Security (RLS) handles data isolation at the core database level, ensuring assets remain private."
+                    />
+                    <HomeBento
+                        className="md:col-span-4 h-[300px]"
+                        icon={<Zap className="text-amber-500" />}
+                        title="Edge Speed"
+                        desc="Optimized global retrieval."
+                    />
+                    <HomeBento
+                        className="md:col-span-4 h-[300px]"
+                        icon={<HardDrive className="text-blue-500" />}
+                        title="Raw Fidelity"
+                        desc="Zero compression policy."
+                    />
+                    <HomeBento
+                        className="md:col-span-8 h-[300px]"
+                        icon={<Fingerprint className="text-emerald-500" />}
+                        title="Signature Encryption"
+                        desc="Cryptographically signed links and session-based tokens provide a secure perimeter for your memories."
+                    />
                 </div>
 
             </main>
 
-            {/* MINIMALIST FOOTER */}
+            {/* FOOTER */}
             <footer className="py-20 px-6 border-t border-white/5">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12 text-[10px] font-black text-white/20 uppercase tracking-[0.6em] italic">
                     <div className="flex gap-10">
@@ -175,7 +172,7 @@ export default function Home() {
                         <Link to="/about" className="hover:text-primary transition-colors">Engineering</Link>
                         <Link to="/about" className="hover:text-primary transition-colors">Venture</Link>
                     </div>
-                    <span>© 2026 Memora Infrastructure Group</span>
+                    <span>© 2026 Memora Infrastructure</span>
                 </div>
             </footer>
         </div>
