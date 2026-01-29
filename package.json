@@ -12,6 +12,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
     "@tailwindcss/postcss": "^4.1.18",
+    "@tailwindcss/vite": "^4.1.18",
     "clsx": "^2.1.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.26.2",

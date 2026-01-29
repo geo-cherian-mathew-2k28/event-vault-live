@@ -117,4 +117,13 @@
   .animate-fade-in {
     animation: fade-in 0.4s ease-out forwards;
   }
+
+  /* Premium Glass UI */
+  .glass-panel {
+    @apply bg-bg-surface/60 backdrop-blur-md border border-border-highlight/50 shadow-lg;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-xl hover:shadow-brand/5 hover:-translate-y-1 hover:border-brand/30;
+  }
 }
