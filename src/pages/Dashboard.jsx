@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Calendar, Lock, Unlock, Loader2, Trash2, ArrowRight, Shield } from 'lucide-react';
+import { Plus, Lock, Unlock, Loader2, Trash2, ArrowRight, Shield, Search, Users, LogOut, Settings } from 'lucide-react';
 
 export default function Dashboard() {
-    const [events, setEvents] = useState([]);
+    const [ownedEvents, setOwnedEvents] = useState([]);
+    const [joinedEvents, setJoinedEvents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -18,8 +20,8 @@ export default function Dashboard() {
 
     const fetchEvents = async () => {
         try {
-            // Fetch owned events
-            const { data: ownedEvents, error: ownedError } = await supabase
+            setLoading(true);
+            const { data: owned, error: ownedError } = await supabase
                 .from('events')
                 .select('*')
                 .eq('owner_id', user.id)
@@ -27,11 +29,19 @@ export default function Dashboard() {
 
             if (ownedError) throw ownedError;
 
-            // Also fetching Joined events for completeness?
-            // For now just owned events as per original spec, but user mentioned "events section".
-            // Let's stick to Owned for "My Events".
+            const { data: joined, error: joinedError } = await supabase
+                .from('event_members')
+                .select('role, events (*)')
+                .eq('user_id', user.id);
 
-            setEvents(ownedEvents || []);
+            if (joinedError) throw joinedError;
+
+            setOwnedEvents(owned || []);
+            const filteredJoined = (joined || [])
+                .map(item => item.events)
+                .filter(ev => ev && ev.owner_id !== user.id);
+
+            setJoinedEvents(filteredJoined);
         } catch (error) {
             console.error('Error fetching events:', error);
         } finally {
@@ -45,56 +55,58 @@ export default function Dashboard() {
         if (!window.confirm('Delete this event? All files will be lost.')) return;
 
         try {
-            const { error } = await supabase
-                .from('events')
-                .delete()
-                .eq('id', eventId);
-
+            const { error } = await supabase.from('events').delete().eq('id', eventId);
             if (error) throw error;
-            setEvents(events.filter(e => e.id !== eventId));
+            setOwnedEvents(ownedEvents.filter(e => e.id !== eventId));
         } catch (error) {
-            console.error('Error deleting event:', error);
             alert('Failed to delete event');
         }
     };
 
+    const handleLeave = async (e, eventId) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (!window.confirm('Leave this event? You will need the passcode to join again.')) return;
+
+        try {
+            await supabase.from('event_members').delete().match({ event_id: eventId, user_id: user.id });
+            setJoinedEvents(joinedEvents.filter(e => e.id !== eventId));
+        } catch (error) {
+            alert('Failed to leave event');
+        }
+    };
+
+    const filterFunc = (ev) => {
+        const query = searchTerm.toLowerCase();
+        return ev.name.toLowerCase().includes(query) || (ev.event_code && ev.event_code.toLowerCase().includes(query));
+    };
+
+    const filteredOwned = ownedEvents.filter(filterFunc);
+    const filteredJoined = joinedEvents.filter(filterFunc);
+
     return (
         <div className="min-h-screen bg-dark-bg pt-24 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
-                <div className="glass-panel rounded-2xl p-6 sm:p-8 mb-6 sm:mb-10 flex flex-col md:flex-row justify-between items-center gap-6 animate-slide-up relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent pointer-events-none" />
-                    <div className="relative z-10 mr-auto w-full md:w-auto text-center md:text-left">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Command Center</h1>
-                        <p className="text-slate-400 mt-1 text-sm sm:text-base">Manage your secure vaults or join others.</p>
+                <div className="glass-panel rounded-2xl p-6 mb-10 border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="mr-auto">
+                        <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
+                        <p className="text-slate-400 text-sm">Manage your secure workspaces.</p>
                     </div>
 
-                    <div className="relative z-10 flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                        {/* Join Form */}
-                        <form
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                const code = e.target.code.value.trim().toUpperCase();
-                                if (!code) return;
-                                navigate(`/e/${code}`);
-                            }}
-                            className="relative w-full sm:w-auto"
-                        >
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                             <input
-                                name="code"
                                 type="text"
-                                placeholder="ACCESS CODE"
-                                className="w-full sm:w-48 bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all uppercase font-mono text-center sm:text-left"
-                                maxLength={6}
-                                autoCapitalize="characters"
+                                placeholder="Search workspace..."
+                                className="bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-primary w-full sm:w-64"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                             />
-                            <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-white transition-colors">
-                                <ArrowRight className="h-4 w-4" />
-                            </button>
-                        </form>
-
-                        <Link to="/events/new" className="btn-primary flex items-center justify-center gap-2 group w-full sm:w-auto">
-                            <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform" />
-                            Create Vault
+                        </div>
+                        <Link to="/events/new" className="btn-primary flex items-center justify-center gap-2 px-4 py-2 h-10">
+                            <Plus className="h-4 w-4" />
+                            <span>Create</span>
                         </Link>
                     </div>
                 </div>
@@ -105,71 +117,85 @@ export default function Dashboard() {
                             <div key={i} className="h-64 bg-white/5 rounded-2xl animate-pulse" />
                         ))}
                     </div>
-                ) : events.length === 0 ? (
-                    <div className="text-center py-24 glass-panel rounded-2xl border-dashed border-slate-700/50 flex flex-col items-center">
-                        <div className="bg-gradient-to-tr from-primary/20 to-accent/20 w-20 h-20 rounded-full flex items-center justify-center mb-6 ring-1 ring-white/10 animate-float">
-                            <Shield className="h-8 w-8 text-primary" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-white mb-2">Your vault is empty</h3>
-                        <p className="text-slate-400 max-w-sm mx-auto mb-8">
-                            Create your first secure event to start sharing with confidence.
-                        </p>
-                        <Link to="/events/new" className="btn-secondary hover:bg-white/10">
-                            Initialize Vault
-                        </Link>
-                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-                        {events.map((event) => (
-                            <Link to={`/events/${event.id}`} key={event.id} className="group glass-panel rounded-2xl p-0 card-hover relative block overflow-hidden">
-                                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                                <div className="p-6">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${event.is_public ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'} flex items-center gap-1.5`}>
-                                            {event.is_public ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                                            {event.is_public ? 'Public' : 'Private'}
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    navigate(`/events/${event.id}/edit`);
-                                                }}
-                                                className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
-                                                title="Settings"
-                                            >
-                                                <Shield className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => handleDelete(e, event.id)}
-                                                className="p-2 hover:bg-rose-500/20 rounded-lg text-slate-400 hover:text-rose-400 transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-primary transition-colors">{event.name}</h3>
-                                    <p className="text-slate-400 text-sm line-clamp-2 mb-8 h-10 leading-relaxed">
-                                        {event.description || 'No description provided'}
-                                    </p>
-
-                                    <div className="border-t border-white/5 pt-4 mt-auto flex items-center justify-between">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] uppercase tracking-wider text-slate-500">Access Code</span>
-                                            <span className="text-sm font-mono text-accent">{event.event_code}</span>
-                                        </div>
-                                        <div className="flex items-center text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                                            Enter Vault <ArrowRight className="h-4 w-4 ml-1" />
-                                        </div>
-                                    </div>
+                    <div className="space-y-12 pb-24">
+                        {filteredOwned.length > 0 && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-6 ml-1">
+                                    <Shield className="h-5 w-5 text-primary" />
+                                    <h2 className="text-lg font-bold text-white tracking-wide">Managed Workspaces</h2>
                                 </div>
-                            </Link>
-                        ))}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {filteredOwned.map((event) => (
+                                        <EventCard key={event.id} event={event} isOwner={true} onDelete={handleDelete} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {filteredJoined.length > 0 && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-6 ml-1">
+                                    <Users className="h-5 w-5 text-accent" />
+                                    <h2 className="text-lg font-bold text-white tracking-wide">Shared with Me</h2>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {filteredJoined.map((event) => (
+                                        <EventCard key={event.id} event={event} isOwner={false} onLeave={handleLeave} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {ownedEvents.length === 0 && joinedEvents.length === 0 && (
+                            <div className="text-center py-24 glass-panel rounded-2xl">
+                                <Shield className="h-10 w-10 text-primary mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold text-white">No workspaces yet</h3>
+                                <p className="text-slate-500 mb-6">Create your first secure vault to get started.</p>
+                                <Link to="/events/new" className="btn-primary px-6 py-2">Create Workspace</Link>
+                            </div>
+                        )}
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+function EventCard({ event, isOwner, onDelete, onLeave }) {
+    const navigate = useNavigate();
+    return (
+        <div className="group glass-panel rounded-2xl p-6 card-hover relative transition-all border border-white/5">
+            <Link to={`/events/${event.id}`} className="absolute inset-0 z-0" />
+
+            <div className="relative z-10 flex justify-between items-start mb-6">
+                <div className={`px-2 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${event.is_public ? 'text-emerald-400 border-emerald-400/20' : 'text-rose-400 border-rose-400/20'}`}>
+                    {event.is_public ? 'Public' : 'Protected'}
+                </div>
+                <div className="flex gap-1">
+                    {isOwner ? (
+                        <>
+                            <button onClick={(e) => { e.preventDefault(); navigate(`/events/${event.id}/edit`); }} className="p-2 text-slate-400 hover:text-white">
+                                <Settings className="h-4 w-4" />
+                            </button>
+                            <button onClick={(e) => onDelete(e, event.id)} className="p-2 text-slate-400 hover:text-rose-400">
+                                <Trash2 className="h-4 w-4" />
+                            </button>
+                        </>
+                    ) : (
+                        <button onClick={(e) => onLeave(e, event.id)} className="p-2 text-slate-400 hover:text-rose-400">
+                            <LogOut className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <h3 className="text-xl font-bold text-white mb-2 truncate relative z-10">{event.name}</h3>
+            <p className="text-slate-400 text-sm line-clamp-2 mb-8 relative z-10">{event.description || 'Secure workspace.'}</p>
+
+            <div className="flex items-center justify-between border-t border-white/5 pt-4 relative z-10">
+                <div className="text-[10px] uppercase font-bold text-slate-500">Access Code: {event.event_code}</div>
+                <ArrowRight className="h-4 w-4 text-primary" />
             </div>
         </div>
     );

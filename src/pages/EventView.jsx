@@ -1,122 +1,277 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
 import {
     Loader2, Lock, Upload, File, Trash2, Download,
-    Settings, Share2, Copy, Check, X, QrCode, Search,
-    Grid, List as ListIcon, Folder, MoreVertical,
-    ChevronLeft, ChevronRight, CheckSquare, Maximize2, Plus, LogOut,
-    PlayCircle, Film
+    Settings, Share2, Copy, Check, X, Heart,
+    Folder, ChevronRight, CheckSquare, Plus,
+    PlayCircle, Edit, Clipboard, ChevronLeft, RefreshCw, AlertTriangle, Globe
 } from 'lucide-react';
-import { Shield } from 'lucide-react';
-import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import JSZip from 'jszip';
+import { useUploads } from '../context/UploadContext';
+
+// --- ATOMIC COMPONENTS ---
+
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText, type = 'danger' }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-bg-base/90 backdrop-blur-2xl animate-fade-in" onClick={onClose}>
+            <div className="glass-panel p-8 md:p-12 rounded-[2.5rem] w-full max-w-sm relative text-center border-white/10 shadow-3xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] rounded-full -mr-16 -mt-16 ${type === 'danger' ? 'bg-rose-500/20' : 'bg-primary/20'}`} />
+                <div className={`h-16 w-16 mx-auto mb-8 rounded-2xl flex items-center justify-center border ${type === 'danger' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-primary/10 border-primary/20 text-primary'}`}>
+                    <AlertTriangle className="h-8 w-8" />
+                </div>
+                <h3 className="text-xl font-black text-white mb-4 uppercase italic tracking-tighter relative z-10">{title}</h3>
+                <p className="text-[11px] text-text-tertiary font-bold uppercase tracking-tight leading-relaxed mb-10 relative z-10">{message}</p>
+                <div className="flex gap-4 relative z-10">
+                    <button onClick={onClose} className="btn-secondary flex-1 h-14 text-[10px] font-black uppercase tracking-widest bg-white/5 border-white/5 hover:bg-white/10 transition-all">Cancel</button>
+                    <button onClick={() => { onConfirm(); onClose(); }} className={`flex-1 h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${type === 'danger' ? 'bg-rose-500 text-white shadow-lg shadow-rose-900/20 hover:scale-[1.02]' : 'bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02]'}`}>
+                        {confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isLiked, onLike }) => {
+    return (
+        <div
+            onClick={(e) => onPreview(file, e)}
+            className={`group relative aspect-square rounded-2xl overflow-hidden cursor-pointer border transition-all duration-500 ${isSelected
+                ? 'border-primary ring-4 ring-primary/20 scale-[0.98] shadow-2xl z-20'
+                : 'border-white/5 active:scale-95 md:hover:border-white/20 bg-bg-surface/30'
+                }`}
+        >
+            {/* Selection Indicator - Refined for "contextual" visibility */}
+            <div
+                className={`absolute top-3 left-3 z-30 h-6 w-6 rounded-lg flex items-center justify-center transition-all duration-300 border ${isSelected
+                    ? 'bg-primary border-primary opacity-100 scale-100'
+                    : (isSelecting ? 'opacity-100 scale-100 bg-white/10 border-white/20' : 'opacity-100 md:opacity-0 scale-90 md:scale-50 bg-black/20 border-white/10 lg:group-hover:opacity-100 lg:group-hover:scale-100')
+                    }`}
+                onClick={(e) => { e.stopPropagation(); onToggle(file.id); }}
+            >
+                <Check className={`h-4 w-4 text-white transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
+            </div>
+
+            {/* Like Button */}
+            <button
+                onClick={(e) => { e.stopPropagation(); onLike(file.id); }}
+                className={`absolute top-3 right-3 z-30 h-8 w-8 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 transition-all duration-300 ${isLiked ? 'bg-primary text-white scale-110 shadow-lg' : 'bg-black/20 text-white/60 md:opacity-0 md:group-hover:opacity-100'}`}
+            >
+                <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+            </button>
+
+            <div className="w-full h-full flex items-center justify-center relative bg-bg-base/40">
+                {file.file_type === 'image' ? (
+                    <img
+                        src={file.file_url}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        loading="lazy"
+                        alt=""
+                    />
+                ) : file.file_type === 'video' ? (
+                    <div className="w-full h-full relative">
+                        <video
+                            src={file.file_url + "#t=0.1"}
+                            className="w-full h-full object-cover"
+                            preload="metadata"
+                            muted
+                            playsInline
+                            crossOrigin="anonymous"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                            <div className="h-12 w-12 rounded-full border border-white/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
+                                <PlayCircle className="h-8 w-8 text-white/80 shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+                            <File className="h-8 w-8 text-text-tertiary" />
+                        </div>
+                        <span className="text-[10px] text-text-secondary font-black uppercase tracking-widest truncate w-full px-4 text-center">{file.file_name}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Hover Gradient Overlay */}
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+    );
+});
+
+// --- MAIN PAGE ---
 
 export default function EventView() {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
+    const { uploadFiles } = useUploads();
 
+    // Data State
     const [event, setEvent] = useState(null);
     const [files, setFiles] = useState([]);
+    const [folders, setFolders] = useState([]);
+    const [currentFolderId, setCurrentFolderId] = useState(null);
+    const [breadcrumbs, setBreadcrumbs] = useState([]);
+
+    // UI Engine State
     const [loading, setLoading] = useState(true);
+    const [networkError, setNetworkError] = useState(false);
+    const [componentError, setComponentError] = useState(null);
     const [joinCode, setJoinCode] = useState('');
     const [joinPasskey, setJoinPasskey] = useState('');
     const [joining, setJoining] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [viewMode, setViewMode] = useState('grid');
-    const [searchTerm, setSearchTerm] = useState('');
 
-    const getFormattedFileType = (file) => {
-        if (file.file_type === 'image' || file.file_type === 'video') return file.file_type;
-        const ext = file.file_name?.split('.').pop().toLowerCase();
-        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif'].includes(ext)) return 'image';
-        if (['mp4', 'mov', 'webm', 'ogg', 'avi', 'mkv'].includes(ext)) return 'video';
-        return 'file';
-    };
+    // Process State
+    const [operation, setOperation] = useState(null);
 
-    // Filter files based on search
-    const filteredFiles = files.filter(f =>
-        f.file_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    // Selection Mode
+    // Multi-select & Clipboard Logic
     const [selectedFiles, setSelectedFiles] = useState(new Set());
-    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [selectedFolders, setSelectedFolders] = useState(new Set());
 
-    // Preview Mode
+    // Modals & Navigation
     const [previewFile, setPreviewFile] = useState(null);
-
-    // Share Modal
     const [showShareModal, setShowShareModal] = useState(false);
+    const [showFolderModal, setShowFolderModal] = useState(false);
+    const [editingFolder, setEditingFolder] = useState(null);
+    const [newFolderName, setNewFolderName] = useState('');
     const [copied, setCopied] = useState(false);
+    const [likedFiles, setLikedFiles] = useState(new Set());
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const fileInputRef = useRef(null);
 
-    useEffect(() => {
-        if (location.state?.code) {
-            setJoinCode(location.state.code);
+    // Derived State - MOVED ABOVE USEEFFECTS
+    const isOwner = useMemo(() => user?.id === event?.owner_id, [user, event]);
+    const canUpload = useMemo(() => isOwner || event?.allow_uploads, [isOwner, event]);
+    const canDownload = useMemo(() => isOwner || event?.allow_downloads, [isOwner, event]);
+    const isSelecting = useMemo(() => selectedFiles.size > 0 || selectedFolders.size > 0, [selectedFiles, selectedFolders]);
+
+    const handleSelectAll = useCallback(() => {
+        const allFilesSelected = files.every(f => selectedFiles.has(f.id));
+        const allFoldersSelected = folders.every(f => selectedFolders.has(f.id));
+
+        if (allFilesSelected && allFoldersSelected) {
+            setSelectedFiles(new Set());
+            setSelectedFolders(new Set());
+        } else {
+            setSelectedFiles(new Set(files.map(f => f.id)));
+            setSelectedFolders(new Set(folders.map(f => f.id)));
         }
-        loadEvent();
-    }, [id, user, location.state]);
+    }, [files, folders, selectedFiles, selectedFolders]);
 
     useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (previewFile) {
-                if (e.key === 'ArrowLeft') navigatePreview(-1);
-                if (e.key === 'ArrowRight') navigatePreview(1);
-                if (e.key === 'Escape') setPreviewFile(null);
+        if (location.state?.code) setJoinCode(location.state.code);
+        loadEvent();
+    }, [id, user]);
+
+    useEffect(() => {
+        if (event) loadContent();
+    }, [currentFolderId, event]);
+
+    useEffect(() => {
+        const handleKeys = (e) => {
+            if (e.key === 'Escape') {
+                if (previewFile) setPreviewFile(null);
+                else if (isSelecting) { setSelectedFiles(new Set()); setSelectedFolders(new Set()); }
+            }
+            if (e.key === 'ArrowLeft') {
+                if (previewFile) handleNav('prev');
+            }
+            if (e.key === 'ArrowRight') {
+                if (previewFile) handleNav('next');
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                e.preventDefault();
+                handleSelectAll();
+            }
+            if (e.key === 'Delete' && isSelecting && isOwner) {
+                setShowDeleteConfirm(true);
             }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [previewFile, files]);
+        window.addEventListener('keydown', handleKeys);
+        return () => window.removeEventListener('keydown', handleKeys);
+    }, [previewFile, isSelecting, handleSelectAll, isOwner, files]);
 
     const loadEvent = async () => {
         try {
-            const { data: eventData, error: eventError } = await supabase
-                .from('events')
-                .select('*')
-                .eq('id', id)
-                .maybeSingle();
+            setLoading(true);
+            setNetworkError(false);
+            const { data, error } = await supabase.from('events').select('*').eq('id', id).maybeSingle();
 
-            if (!eventError && eventData) {
-                setEvent(eventData);
-                const { data: fileData } = await supabase
-                    .from('media_files')
-                    .select('*')
-                    .eq('event_id', id)
-                    .order('created_at', { ascending: false });
-                setFiles(fileData || []);
+            if (error) {
+                setNetworkError(true);
+                return;
             }
+            if (data) setEvent(data);
         } catch (err) {
-            console.log('Access denied initially or event not found', err);
+            setNetworkError(true);
         } finally {
             setLoading(false);
         }
     };
 
+    const loadContent = useCallback(async () => {
+        try {
+            let fQuery = supabase.from('folders').select('*').eq('event_id', id);
+            let mQuery = supabase.from('media_files').select('*').eq('event_id', id);
+
+            if (currentFolderId) {
+                fQuery = fQuery.eq('parent_id', currentFolderId);
+                mQuery = mQuery.eq('folder_id', currentFolderId);
+            } else {
+                fQuery = fQuery.is('parent_id', null);
+                mQuery = mQuery.is('folder_id', null);
+            }
+
+            const [foldersRes, filesRes] = await Promise.all([
+                fQuery.order('name'),
+                mQuery.order('created_at', { ascending: false })
+            ]);
+
+            setFolders(foldersRes.data || []);
+            setFiles(filesRes.data || []);
+
+            // Robust Like Loading
+            if (user) {
+                try {
+                    const { data: likes, error } = await supabase.from('media_likes').select('file_id').eq('user_id', user.id);
+                    if (!error && likes) {
+                        setLikedFiles(new Set(likes.map(l => l.file_id)));
+                    }
+                } catch (e) {
+                    console.warn("Likes table possibly missing or inaccessible.");
+                }
+            }
+
+            if (currentFolderId) {
+                const { data: curr } = await supabase.from('folders').select('name').eq('id', currentFolderId).single();
+                if (curr) setBreadcrumbs([{ id: currentFolderId, name: curr.name }]);
+            } else {
+                setBreadcrumbs([]);
+            }
+        } catch (err) {
+            console.error("Content fetch failed", err);
+        }
+    }, [id, currentFolderId, user]);
+
     const handleJoin = async (e) => {
         e.preventDefault();
         setJoining(true);
         try {
-            if (!user) {
-                navigate('/login', { state: { from: location } });
-                return;
-            }
-
             const { data, error } = await supabase.rpc('join_event', {
                 input_code: joinCode.trim().toUpperCase(),
                 input_passkey: joinPasskey.trim()
             });
-
             if (error) throw error;
             if (!data.success) throw new Error(data.message);
-
-            setLoading(true);
             await loadEvent();
         } catch (error) {
             alert(error.message);
@@ -126,643 +281,458 @@ export default function EventView() {
     };
 
     const handleFileUpload = async (e) => {
-        const fileList = e.target.files;
-        if (!fileList || fileList.length === 0) return;
+        const fileList = Array.from(e.target.files);
+        if (!fileList.length) return;
+        uploadFiles(fileList, id, currentFolderId, user.id);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
 
-        setUploading(true);
+    const toggleLike = async (fileId) => {
+        if (!user) return;
+        const newLikes = new Set(likedFiles);
         try {
-            for (const file of fileList) {
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-                const filePath = `${id}/${fileName}`;
-
-                // Simpler upload call
-                const { error: uploadError } = await supabase.storage
-                    .from('media')
-                    .upload(filePath, file);
-
-                if (uploadError) throw uploadError;
-
-                const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(filePath);
-
-                await supabase.from('media_files').insert({
-                    event_id: id,
-                    uploader_id: user.id,
-                    file_url: publicUrl,
-                    storage_path: filePath,
-                    file_type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file',
-                    file_name: file.name,
-                    size_bytes: file.size
-                });
+            if (newLikes.has(fileId)) {
+                newLikes.delete(fileId);
+                await supabase.from('media_likes').delete().eq('file_id', fileId).eq('user_id', user.id);
+            } else {
+                newLikes.add(fileId);
+                await supabase.from('media_likes').insert({ file_id: fileId, user_id: user.id });
             }
-            loadEvent();
-        } catch (error) {
-            console.error(error);
-            alert('Upload failed. Please try again.');
-        } finally {
-            setUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
+            setLikedFiles(newLikes);
+        } catch (e) {
+            alert("Social feature unavailable. Run LIKES schema.");
         }
     };
 
-    const handleDeleteFile = async (e, file) => {
-        e.stopPropagation();
-        if (!confirm('Delete file permanently?')) return;
-        performDelete([file]);
-    };
-
-    const performDelete = async (filesToDelete) => {
+    const handleBulkDelete = async () => {
         try {
-            const paths = filesToDelete.map(f => f.storage_path);
-            const ids = filesToDelete.map(f => f.id);
-
-            await supabase.storage.from('media').remove(paths);
-            await supabase.from('media_files').delete().in('id', ids);
-
-            setFiles(files.filter(f => !ids.includes(f.id)));
+            if (selectedFiles.size) {
+                const itemsToDelete = files.filter(f => selectedFiles.has(f.id));
+                const paths = itemsToDelete.map(f => f.storage_path);
+                if (paths.length > 0) await supabase.storage.from('media').remove(paths);
+                await supabase.from('media_files').delete().in('id', Array.from(selectedFiles));
+            }
+            if (selectedFolders.size) {
+                await supabase.from('folders').delete().in('id', Array.from(selectedFolders));
+            }
             setSelectedFiles(new Set());
-            setPreviewFile(null); // Close preview if open
-        } catch (error) {
-            alert('Delete failed');
+            setSelectedFolders(new Set());
+            await loadContent();
+        } catch (e) {
+            console.error("Delete failed", e);
         }
     };
 
-    const toggleSelection = (e, fileId) => {
-        e.stopPropagation();
-        const newSet = new Set(selectedFiles);
-        if (newSet.has(fileId)) {
-            newSet.delete(fileId);
-        } else {
-            newSet.add(fileId);
-        }
-        setSelectedFiles(newSet);
-        setIsSelectionMode(newSet.size > 0);
-    };
+    const downloadSelection = async () => {
+        if (selectedFiles.size === 0 && selectedFolders.size === 0) return;
 
-    const handleBulkDelete = () => {
-        if (!confirm(`Delete ${selectedFiles.size} items?`)) return;
-        const filesToDelete = files.filter(f => selectedFiles.has(f.id));
-        performDelete(filesToDelete);
-    }
+        setOperation({ type: 'Preparing', progress: 10, count: selectedFiles.size + selectedFolders.size });
 
-    // Memoize images/videos list for stable navigation
-    const mediaFiles = React.useMemo(() =>
-        files.filter(f => ['image', 'video'].includes(getFormattedFileType(f))),
-        [files]);
-
-    const navigatePreview = (direction) => {
-        if (!previewFile) return;
-        const currentIndex = mediaFiles.findIndex(f => f.id === previewFile.id);
-        if (currentIndex === -1) return;
-
-        const newIndex = currentIndex + direction;
-        if (newIndex >= 0 && newIndex < mediaFiles.length) {
-            setPreviewFile(mediaFiles[newIndex]);
-        }
-    };
-
-    const downloadFile = async (url, filename) => {
         try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            saveAs(blob, filename);
-        } catch (error) {
-            console.error('Download failed:', error);
-            alert('Download failed. Please try again.');
+            const zip = new JSZip();
+
+            // Files in current view
+            const filesToDownload = files.filter(f => selectedFiles.has(f.id));
+            for (let i = 0; i < filesToDownload.length; i++) {
+                const f = filesToDownload[i];
+                const res = await fetch(f.file_url);
+                const blob = await res.blob();
+                zip.file(f.file_name, blob);
+                setOperation(prev => ({ ...prev, progress: 10 + Math.floor((i / filesToDownload.length) * 40) }));
+            }
+
+            // Folders
+            const foldersToDownload = folders.filter(f => selectedFolders.has(f.id));
+            for (let i = 0; i < foldersToDownload.length; i++) {
+                const folder = foldersToDownload[i];
+                const folderZip = zip.folder(folder.name);
+
+                const { data: folderFiles } = await supabase.from('media_files').select('*').eq('folder_id', folder.id);
+                if (folderFiles) {
+                    for (const f of folderFiles) {
+                        const res = await fetch(f.file_url);
+                        const blob = await res.blob();
+                        folderZip.file(f.file_name, blob);
+                    }
+                }
+            }
+
+            setOperation({ type: 'Archiving', progress: 80, count: 1 });
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, `memora-export-${Date.now()}.zip`);
+            setOperation(null);
+        } catch (e) {
+            console.error("Download failed", e);
+            alert('Package generation failed');
+            setOperation(null);
         }
     };
 
-    // Use direct ID link for guaranteed access (bypasses lookup issues)
-    const getShareUrl = () => `${window.location.origin}/events/${event.id}`;
-
-    const copyLink = () => {
-        navigator.clipboard.writeText(getShareUrl());
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const handleNav = (direction) => {
+        const idx = files.findIndex(f => f.id === previewFile?.id);
+        if (idx === -1) return;
+        const next = direction === 'next' ? (idx + 1) % files.length : (idx - 1 + files.length) % files.length;
+        setPreviewFile(files[next]);
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-bg-base flex items-center justify-center">
-            <Loader2 className="animate-spin text-text-primary h-8 w-8" />
+        <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center p-6 space-y-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-widest animate-pulse">Loading Vault...</span>
         </div>
     );
 
-    // PRIVATE / JOIN SCREEN
+    if (networkError || componentError) return (
+        <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center p-8 text-center space-y-8 pt-24">
+            <div className="bg-rose-500/10 p-8 rounded-xl border border-rose-500/20 shadow-2xl shadow-rose-900/10">
+                <AlertTriangle className="h-16 w-16 text-rose-500" />
+            </div>
+            <div className="space-y-3">
+                <h2 className="text-2xl font-black text-white uppercase italic tracking-tight">System Fragmented</h2>
+                <p className="text-xs text-text-tertiary max-w-xs mx-auto leading-relaxed font-bold uppercase tracking-tight">
+                    {componentError ? "A critical runtime error has occurred in the UI engine. This session has been isolated." : "Vault connection failed. Check your network protocol."}
+                </p>
+            </div>
+            <button onClick={() => window.location.reload()} className="btn-primary px-10 h-14 font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+                <RefreshCw className="h-5 w-5 mr-1" /> Reboot Interface
+            </button>
+        </div>
+    );
+
     if (!event) {
         return (
             <div className="min-h-screen bg-bg-base flex items-center justify-center p-4">
-                <div className="w-full max-w-md bg-bg-surface border border-border-subtle rounded-xl p-8 shadow-card">
-                    <div className="text-center mb-8">
-                        <div className="mx-auto w-12 h-12 bg-bg-subtle rounded-full flex items-center justify-center mb-4 border border-border-subtle">
-                            <Lock className="h-5 w-5 text-text-secondary" />
-                        </div>
-                        <h2 className="text-xl font-semibold text-text-primary">Restricted Access</h2>
-                        <p className="text-text-secondary mt-2">Enter credentials to access this workspace.</p>
-                    </div>
-
-                    <form onSubmit={handleJoin} className="space-y-4">
-                        <div>
-                            <label className="input-label">Access Code</label>
-                            <input
-                                type="text"
-                                className="input-field text-center font-mono uppercase tracking-widest text-lg"
-                                placeholder="XXXXXX"
-                                value={joinCode}
-                                onChange={e => setJoinCode(e.target.value)}
-                                maxLength={6}
-                            />
-                        </div>
-                        <div>
-                            <label className="input-label">Passkey</label>
-                            <input
-                                type="password"
-                                className="input-field text-center"
-                                placeholder="••••••"
-                                value={joinPasskey}
-                                onChange={e => setJoinPasskey(e.target.value)}
-                            />
-                        </div>
-                        <button type="submit" disabled={joining} className="btn-primary w-full justify-center">
-                            {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Authenticate Access'}
-                        </button>
+                <div className="max-w-xs w-full glass-panel p-10 rounded-[2.5rem] text-center border-white/5 shadow-2xl animate-fade-in relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full -mr-16 -mt-16" />
+                    <Lock className="h-10 w-10 text-primary mx-auto mb-6 relative z-10" />
+                    <h2 className="text-2xl font-black text-white mb-2 uppercase italic tracking-tighter relative z-10">Vault Locked</h2>
+                    <form onSubmit={handleJoin} className="space-y-4 mt-8 relative z-10">
+                        <input className="input-field h-14 text-center font-mono uppercase text-xl bg-white/5 border-white/10 tracking-[0.4em]" placeholder="CODE" value={joinCode} onChange={e => setJoinCode(e.target.value)} maxLength={6} required />
+                        <input className="input-field h-14 text-center text-base font-bold bg-white/5 border-white/10" type="password" placeholder="PASSKEY" value={joinPasskey} onChange={e => setJoinPasskey(e.target.value)} required />
+                        <button type="submit" disabled={joining} className="btn-primary w-full h-14 font-black uppercase text-xs tracking-widest mt-4 shadow-xl shadow-primary/20">{joining ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Enter Vault'}</button>
                     </form>
-                    {!user && (
-                        <div className="mt-6 text-center">
-                            <button onClick={() => navigate('/login')} className="text-sm text-text-secondary hover:text-text-primary underline">
-                                Log in to access
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
         );
     }
 
-    const isOwner = user?.id === event.owner_id;
-    const canUpload = isOwner || event.allow_uploads;
-
-    const handleLeaveEvent = async () => {
-        if (!confirm("Remove access to this private event? You will need the passkey to rejoin.")) return;
-        try {
-            await supabase.from('event_members').delete().match({ event_id: id, user_id: user.id });
-            window.location.reload();
-        } catch (e) { alert(e.message); }
-    };
-
     return (
-        <div className="min-h-screen bg-bg-base pt-16 flex flex-col">
-            {/* Toolbar / Header */}
-            <div className="bg-bg-base border-b border-border-subtle px-4 sm:px-6 h-16 flex items-center justify-between sticky top-16 z-20">
-                {selectedFiles.size > 0 ? (
-                    <div className="flex items-center gap-4 w-full animate-fade-in">
-                        <button onClick={() => { setSelectedFiles(new Set()); setIsSelectionMode(false); }} className="p-2 hover:bg-bg-surface rounded-full">
-                            <X className="h-5 w-5 text-text-secondary" />
+        <div className="min-h-screen bg-bg-base flex flex-col font-sans selection:bg-primary/30">
+
+            {/* STICKY TOOLBAR */}
+            <div className="sticky top-16 md:top-20 z-[40] w-full">
+                <div className="absolute inset-0 bg-bg-base/80 backdrop-blur-xl border-b border-white/5 shadow-xl" />
+
+                <div className="max-w-7xl mx-auto px-4 md:px-8 h-12 md:h-16 flex items-center justify-between relative z-10">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <button
+                            onClick={() => setCurrentFolderId(null)}
+                            className={`flex items-center gap-2 p-2 rounded-xl transition-all ${!currentFolderId ? 'text-primary bg-primary/10 border border-primary/20' : 'text-text-tertiary hover:text-white hover:bg-white/5 border border-transparent'}`}
+                        >
+                            <Folder className="h-4 w-4 md:h-5 md:w-5" />
                         </button>
-                        <span className="font-semibold text-text-primary">{selectedFiles.size} selected</span>
 
-                        <div className="ml-auto flex items-center gap-2">
-                            <button
-                                onClick={async () => {
-                                    const count = selectedFiles.size;
-                                    if (!confirm(`Download ${count} files as ZIP?`)) return;
-
-                                    const zip = new JSZip();
-                                    const folder = zip.folder(`Selected_Files`);
-
-                                    const filesToDownload = files.filter(f => selectedFiles.has(f.id));
-
-                                    for (const file of filesToDownload) {
-                                        try {
-                                            const response = await fetch(file.file_url);
-                                            const blob = await response.blob();
-                                            folder.file(file.file_name, blob);
-                                        } catch (e) {
-                                            console.error("Skipping", file.file_name);
-                                        }
-                                    }
-
-                                    const content = await zip.generateAsync({ type: "blob" });
-                                    saveAs(content, `selected_files.zip`);
-                                }}
-                                className="btn-secondary h-9 px-3"
-                            >
-                                <Download className="h-4 w-4" />
-                                <span className="hidden sm:inline">Download Selected</span>
-                            </button>
-
-                            {(isOwner || canUpload) && (
-                                <button onClick={handleBulkDelete} className="btn-secondary text-danger border-danger/30 hover:bg-danger/10 hover:border-danger hover:text-danger">
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Delete</span>
-                                </button>
-                            )}
+                        <div className="hidden lg:flex items-center gap-2 border-l border-white/10 pl-4 ml-1">
+                            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-tighter truncate max-w-[120px]">{event.name}</span>
                         </div>
                     </div>
-                ) : (
-                    <>
-                        <div className="flex items-center gap-4 overflow-hidden">
-                            <div className="p-2 bg-bg-surface border border-border-subtle rounded-md">
-                                <Folder className="h-5 w-5 text-text-tertiary" />
-                            </div>
-                            <div>
-                                <h1 className="text-sm font-semibold text-text-primary flex items-center gap-2">
-                                    {event.name}
-                                    {!event.is_public && <Lock className="h-3 w-3 text-text-tertiary" />}
-                                    {isOwner && <span className="text-[10px] bg-brand/20 text-brand px-1.5 py-0.5 rounded border border-brand/20">OWNER</span>}
-                                </h1>
-                                <div className="text-xs text-text-tertiary truncate max-w-[200px] sm:max-w-md">
-                                    {files.length} items • Last updated today
-                                </div>
-                            </div>
 
-                            {/* Security Context Badge */}
-                            <div className="hidden md:block ml-4">
-                                {isOwner ? (
-                                    <div className="text-[10px] bg-brand/10 text-brand px-2 py-1 rounded border border-brand/20 flex items-center gap-1.5 cursor-help" title="As the owner, you bypass the passkey lock screen.">
-                                        <Shield className="h-3 w-3" /> OWNER ACCESS
-                                    </div>
-                                ) : (
-                                    <div className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded border border-emerald-500/20 flex items-center gap-1.5 cursor-help" title="You have authenticated successfully.">
-                                        <Check className="h-3 w-3" /> MEMBER ACCESS
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <button onClick={loadContent} className="h-8 w-8 md:h-10 md:w-10 flex items-center justify-center text-text-tertiary hover:text-white hover:bg-white/5 rounded-xl transition-all">
+                            <RefreshCw className="h-4 w-4 md:h-5 md:w-5" />
+                        </button>
 
-                        <div className="flex items-center gap-2">
-                            {/* Share */}
-                            <button onClick={() => setShowShareModal(true)} className="btn-secondary h-9 px-3">
-                                <Share2 className="h-4 w-4" />
-                                <span className="hidden sm:inline">Share</span>
-                            </button>
-
-                            {/* Download All (If items exist) */}
-                            {files.length > 0 && (
+                        {isSelecting ? (
+                            <div className="flex items-center gap-2 p-1 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-right-4 duration-500">
                                 <button
-                                    onClick={async () => {
-                                        if (!confirm('Download all files as ZIP?')) return;
-                                        const zip = new JSZip();
-                                        const folder = zip.folder(event.name || 'EventFiles');
+                                    onClick={handleSelectAll}
+                                    className="flex items-center gap-2 h-8 px-3 rounded-xl transition-all hover:bg-primary/20 group"
+                                >
+                                    <CheckSquare className="h-3.5 w-3.5 text-primary group-active:scale-90 transition-transform" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-primary">
+                                        {files.length + folders.length === selectedFiles.size + selectedFolders.size ? 'Deselect All' : 'Select All'}
+                                    </span>
+                                </button>
 
-                                        let count = 0;
-                                        for (const file of files) {
-                                            try {
-                                                const response = await fetch(file.file_url);
-                                                const blob = await response.blob();
-                                                folder.file(file.file_name, blob);
-                                                count++;
-                                            } catch (e) {
-                                                console.error("Skipping file", file.file_name);
-                                            }
-                                        }
+                                <div className="h-6 w-px bg-white/10" />
 
-                                        if (count > 0) {
-                                            const content = await zip.generateAsync({ type: "blob" });
-                                            saveAs(content, `${event.name || 'archive'}.zip`);
-                                        }
-                                    }}
-                                    className="btn-secondary h-9 px-3"
-                                    title="Download All as ZIP"
+                                <div className="px-2">
+                                    <div className="bg-primary/10 text-primary text-[9px] font-black px-2 py-1 rounded-lg border border-primary/20">
+                                        {selectedFiles.size + selectedFolders.size}
+                                    </div>
+                                </div>
+
+                                <div className="h-6 w-px bg-white/10" />
+
+                                {isOwner && (
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        className="h-8 w-8 flex items-center justify-center text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl transition-all shadow-lg shadow-rose-900/10"
+                                        title="Delete Selection"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                )}
+
+                                <button
+                                    onClick={downloadSelection}
+                                    className="h-8 w-8 flex items-center justify-center text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-all shadow-lg shadow-primary/10"
+                                    title="Download Zip"
                                 >
                                     <Download className="h-4 w-4" />
                                 </button>
-                            )}
 
-                            {/* Settings (Owner) */}
-                            {isOwner && (
-                                <button onClick={() => navigate(`/events/${id}/edit`)} className="btn-secondary h-9 px-3">
-                                    <Settings className="h-4 w-4" />
+                                <div className="h-6 w-px bg-white/10" />
+
+                                <button
+                                    onClick={() => { setSelectedFiles(new Set()); setSelectedFolders(new Set()); }}
+                                    className="h-8 w-8 flex items-center justify-center text-text-tertiary hover:text-white rounded-xl transition-all"
+                                    title="Clear Selection"
+                                >
+                                    <X className="h-4 w-4" />
                                 </button>
-                            )}
-
-                            {/* Leave Event (For Members) */}
-                            {!isOwner && !event.is_public && user && (
-                                <button onClick={handleLeaveEvent} className="btn-secondary h-9 px-3 text-rose-400 hover:text-rose-300 border-rose-500/30 hover:bg-rose-500/10" title="Leave Event (Relock)">
-                                    <LogOut className="h-4 w-4" />
-                                </button>
-                            )}
-
-                            {/* Upload */}
-                            {canUpload && (
-                                <>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        multiple
-                                        className="hidden"
-                                        onChange={handleFileUpload}
-                                    />
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={uploading}
-                                        className="hidden md:flex btn-primary h-9 px-3"
-                                    >
-                                        {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                                        <span className="hidden sm:inline">Upload</span>
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    </>
-                )}
-            </div>
-
-            {/* Sub-toolbar (Search/View) */}
-            <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
-                <div className="relative max-w-xs w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
-                    <input
-                        type="text"
-                        placeholder="Search files..."
-                        className="w-full bg-transparent border border-border-subtle rounded-md pl-9 pr-3 py-1.5 text-sm text-text-primary focus:bg-bg-surface focus:border-border-highlight outline-none"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
-                <div className="flex items-center border border-border-subtle rounded-md p-0.5 bg-bg-surface">
-                    <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-sm transition-colors ${viewMode === 'grid' ? 'bg-bg-highlight text-text-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'}`}>
-                        <Grid className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-sm transition-colors ${viewMode === 'list' ? 'bg-bg-highlight text-text-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'}`}>
-                        <ListIcon className="h-4 w-4" />
-                    </button>
-                </div>
-            </div>
-
-            {/* File Content */}
-            <div className="flex-1 px-4 sm:px-6 pb-12 overflow-y-auto">
-                {filteredFiles.length === 0 ? (
-                    <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed border-border-subtle rounded-xl mt-4">
-                        <div className="w-12 h-12 bg-bg-surface rounded-full flex items-center justify-center mb-3">
-                            <Upload className="h-5 w-5 text-text-tertiary" />
-                        </div>
-                        <p className="text-text-secondary text-sm font-medium">
-                            {searchTerm ? `No results for "${searchTerm}"` : 'This workspace is empty'}
-                        </p>
-                        {canUpload && !searchTerm && <p className="text-text-tertiary text-xs mt-1">Upload files to get started</p>}
-                    </div>
-                ) : (
-                    <>
-                        {viewMode === 'grid' ? (
-                            <div className="drive-grid">
-                                {filteredFiles.map(file => (
-                                    <div
-                                        key={file.id}
-                                        onClick={() => isSelectionMode ? toggleSelection({ stopPropagation: () => { } }, file.id) : setPreviewFile(file)}
-                                        className={`group relative bg-bg-surface border rounded-lg overflow-hidden transition-all cursor-pointer aspect-[4/3] flex flex-col ${selectedFiles.has(file.id) ? 'border-brand ring-1 ring-brand' : 'border-border-subtle hover:border-border-highlight hover:shadow-sm'}`}
-                                    >
-                                        {/* Selection Checkbox */}
-                                        <div
-                                            className={`absolute top-2 left-2 z-10 p-1 rounded-md transition-opacity ${selectedFiles.has(file.id) ? 'opacity-100 bg-brand text-bg-base' : 'opacity-0 group-hover:opacity-100 bg-black/40 text-white hover:bg-black/60'}`}
-                                            onClick={(e) => toggleSelection(e, file.id)}
-                                        >
-                                            <CheckSquare className="h-4 w-4" />
-                                        </div>
-
-                                        {/* File Preview */}
-                                        <div className="flex-1 bg-bg-subtle relative overflow-hidden flex items-center justify-center">
-                                            {(() => {
-                                                const type = getFormattedFileType(file);
-                                                if (type === 'image') {
-                                                    // Optimization: Use Supabase Image Transformation for thumbnails
-                                                    return <img
-                                                        src={`${file.file_url}?width=300&resize=cover`}
-                                                        className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500"
-                                                        loading="lazy"
-                                                        decoding="async"
-                                                    />;
-                                                }
-                                                if (type === 'video') return (
-                                                    <div className="relative w-full h-full bg-black flex items-center justify-center">
-                                                        <video src={file.file_url} className="w-full h-full object-cover opacity-80" preload="metadata" />
-                                                        <PlayCircle className="absolute h-10 w-10 text-white/80 drop-shadow-lg" />
-                                                    </div>
-                                                );
-                                                return (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <File className="h-10 w-10 text-text-tertiary" />
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
-
-                                        {/* Footer */}
-                                        <div className={`h-9 px-3 flex items-center justify-between border-t border-border-subtle ${selectedFiles.has(file.id) ? 'bg-brand/5' : 'bg-bg-surface'}`}>
-                                            <span className="text-xs text-text-secondary truncate max-w-[90%]">{file.file_name}</span>
-                                        </div>
-                                    </div>
-                                ))}
                             </div>
                         ) : (
-                            <div className="border border-border-subtle rounded-lg overflow-hidden bg-bg-surface">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-bg-subtle border-b border-border-subtle text-text-tertiary font-medium">
-                                        <tr>
-                                            <th className="px-4 py-3 font-normal w-10">
-                                                <button onClick={() => {
-                                                    if (selectedFiles.size === files.length) setSelectedFiles(new Set());
-                                                    else setSelectedFiles(new Set(files.map(f => f.id)));
-                                                }}>
-                                                    <CheckSquare className={`h-4 w-4 ${selectedFiles.size > 0 ? 'text-brand' : 'text-text-tertiary'}`} />
-                                                </button>
-                                            </th>
-                                            <th className="px-4 py-3 font-normal">Name</th>
-                                            <th className="px-4 py-3 font-normal w-32">Size</th>
-                                            <th className="px-4 py-3 font-normal w-24 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border-subtle">
-                                        {files.map(file => (
-                                            <tr
-                                                key={file.id}
-                                                className={`hover:bg-bg-subtle transition-colors cursor-pointer ${selectedFiles.has(file.id) ? 'bg-brand/5' : ''}`}
-                                                onClick={() => setPreviewFile(file)}
-                                            >
-                                                <td className="px-4 py-3" onClick={(e) => toggleSelection(e, file.id)}>
-                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center ${selectedFiles.has(file.id) ? 'bg-brand border-brand' : 'border-text-tertiary'}`}>
-                                                        {selectedFiles.has(file.id) && <Check className="h-3 w-3 text-bg-base" />}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 flex items-center gap-3">
-                                                    {(() => {
-                                                        const type = getFormattedFileType(file);
-                                                        if (type === 'image') return <File className="h-4 w-4 text-accent" />;
-                                                        if (type === 'video') return <Film className="h-4 w-4 text-blue-400" />;
-                                                        return <File className="h-4 w-4 text-text-tertiary" />;
-                                                    })()}
-                                                    <span className="text-text-primary truncate max-w-xs">{file.file_name}</span>
-                                                </td>
-                                                <td className="px-4 py-3 text-text-secondary text-xs font-mono">
-                                                    {(file.size_bytes / 1024 / 1024).toFixed(2)} MB
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            downloadFile(file.file_url, file.file_name);
-                                                        }}
-                                                        className="text-text-tertiary hover:text-text-primary inline-block transition-colors"
-                                                        title="Download"
-                                                    >
-                                                        <Download className="h-4 w-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className="flex items-center gap-1 md:gap-2">
+                                <button onClick={() => setShowShareModal(true)} className="h-8 w-8 md:h-10 md:w-10 flex items-center justify-center text-text-tertiary hover:text-white hover:bg-white/5 rounded-xl transition-all"><Share2 className="h-4 w-4 md:h-5 md:w-5" /></button>
+                                {isOwner && (
+                                    <>
+                                        <button onClick={() => navigate(`/events/${id}/edit`)} className="hidden sm:flex h-10 w-10 items-center justify-center text-text-tertiary hover:text-white hover:bg-white/5 rounded-xl transition-all"><Settings className="h-5 w-5" /></button>
+                                        <button onClick={() => { setEditingFolder(null); setNewFolderName(''); setShowFolderModal(true); }} className="h-8 w-8 md:h-10 md:w-10 flex items-center justify-center text-text-tertiary hover:text-white hover:bg-white/5 rounded-xl transition-all"><Plus className="h-4 w-4 md:h-5 md:w-5" /></button>
+                                    </>
+                                )}
+                                {canUpload && (
+                                    <button onClick={() => fileInputRef.current?.click()} className="btn-primary h-9 md:h-10 px-3 md:px-6 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-primary/20 border border-white/10 ml-2">
+                                        <Upload className="h-4 w-4" />
+                                        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} />
+                                    </button>
+                                )}
                             </div>
                         )}
-                    </>
-                )}
+                    </div>
+                </div>
             </div>
 
-            {/* Full Screen Image/Video Preview Modal */}
-            {previewFile && ['image', 'video'].includes(getFormattedFileType(previewFile)) && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100vw',
-                        height: '100vh',
-                        backgroundColor: 'rgba(0,0,0,0.95)',
-                        zIndex: 99999,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden'
-                    }}
-                    className="animate-fade-in"
-                    onClick={() => setPreviewFile(null)}
-                >
-
-                    {/* Header Overlay */}
-                    <div
-                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', padding: '20px', zIndex: 100000, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)' }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <h3 className="text-white font-medium text-lg truncate max-w-[70%]" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                            {previewFile.file_name}
-                        </h3>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    downloadFile(previewFile.file_url, previewFile.file_name);
-                                }}
-                                className="p-2 rounded-full bg-black/40 text-white hover:bg-white/20 transition-all backdrop-blur-md"
-                                title="Download"
-                            >
-                                <Download className="h-6 w-6" />
-                            </button>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setPreviewFile(null); }}
-                                className="p-2 rounded-full bg-black/40 text-white hover:bg-white/20 transition-all backdrop-blur-md"
-                                title="Close"
-                            >
-                                <X className="h-6 w-6" />
-                            </button>
+            <div className="flex-1 overflow-y-auto px-4 md:px-8 pt-18 md:pt-32 pb-24">
+                <div className="max-w-7xl mx-auto">
+                    {/* Visual Folders Grid - Premium Density */}
+                    {folders.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 mb-8 md:mb-12">
+                            {folders.map(f => (
+                                <div
+                                    key={f.id}
+                                    onClick={() => setCurrentFolderId(f.id)}
+                                    className={`group relative glass-panel p-4 md:p-6 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer border transition-all duration-500 ${selectedFolders.has(f.id)
+                                        ? 'border-primary bg-primary/10 ring-4 ring-primary/10 scale-[0.98] shadow-2xl z-20'
+                                        : 'border-white/5 active:scale-[0.98] md:hover:border-white/20 bg-bg-surface/30'
+                                        }`}
+                                >
+                                    <div
+                                        className={`absolute top-3 left-3 z-10 h-5 w-5 rounded-lg flex items-center justify-center transition-all border ${selectedFolders.has(f.id) ? 'bg-primary border-primary scale-100 shadow-lg' : (isSelecting ? 'opacity-100 scale-100 bg-white/10 border-white/20' : 'opacity-100 md:opacity-0 scale-90 md:scale-50 bg-black/20 border-white/10 lg:group-hover:opacity-100 lg:group-hover:scale-100')}`}
+                                        onClick={e => { e.stopPropagation(); const n = new Set(selectedFolders); if (n.has(f.id)) n.delete(f.id); else n.add(f.id); setSelectedFolders(n); }}
+                                    >
+                                        <Check className={`h-3 w-3 text-white transition-opacity ${selectedFolders.has(f.id) ? 'opacity-100' : 'opacity-0'}`} />
+                                    </div>
+                                    <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-4 transition-all duration-500 ${selectedFolders.has(f.id) ? 'bg-primary/20' : 'bg-primary/5 group-hover:bg-primary/10'}`}>
+                                        <Folder className={`h-6 w-6 md:h-8 md:w-8 transition-colors ${selectedFolders.has(f.id) ? 'text-primary' : 'text-text-tertiary group-hover:text-primary'}`} />
+                                    </div>
+                                    <span className="text-[11px] font-black text-white uppercase tracking-tight truncate w-full text-center px-1">{f.name}</span>
+                                    {isOwner && (
+                                        <button onClick={e => { e.stopPropagation(); setEditingFolder(f); setNewFolderName(f.name); setShowFolderModal(true); }} className="absolute bottom-4 right-4 p-2 opacity-0 md:group-hover:opacity-100 bg-white/5 hover:bg-white/10 rounded-lg transition-all"><Edit className="h-3 w-3 text-text-tertiary" /></button>
+                                    )}
+                                </div>
+                            ))}
                         </div>
+                    )}
+
+                    {/* Files Grid - Optimized for High-End Viewing */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                        {files.map(file => (
+                            <FileCard
+                                key={file.id}
+                                file={file}
+                                isSelected={selectedFiles.has(file.id)}
+                                isSelecting={isSelecting}
+                                isLiked={likedFiles.has(file.id)}
+                                onLike={toggleLike}
+                                onToggle={(id) => {
+                                    const next = new Set(selectedFiles);
+                                    if (next.has(id)) next.delete(id); else next.add(id);
+                                    setSelectedFiles(next);
+                                }}
+                                onPreview={(f, e) => {
+                                    if (isSelecting) {
+                                        const next = new Set(selectedFiles);
+                                        if (next.has(f.id)) next.delete(f.id); else next.add(f.id);
+                                        setSelectedFiles(next);
+                                    } else {
+                                        setPreviewFile(f);
+                                    }
+                                }}
+                            />
+                        ))}
                     </div>
 
-                    {/* Navigation Buttons */}
-                    <button
-                        onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
-                        className="absolute left-4 p-4 rounded-full text-white/80 hover:text-white hover:bg-black/20 transition-all z-[100000]"
-                        style={{ display: mediaFiles.findIndex(f => f.id === previewFile.id) <= 0 ? 'none' : 'block' }}
-                    >
-                        <ChevronLeft className="h-10 w-10 drop-shadow-lg" />
-                    </button>
-
-                    <button
-                        onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
-                        className="absolute right-4 p-4 rounded-full text-white/80 hover:text-white hover:bg-black/20 transition-all z-[100000]"
-                        style={{ display: mediaFiles.findIndex(f => f.id === previewFile.id) >= mediaFiles.length - 1 ? 'none' : 'block' }}
-                    >
-                        <ChevronRight className="h-10 w-10 drop-shadow-lg" />
-                    </button>
-
-                    {/* Content Preview */}
-                    {getFormattedFileType(previewFile) === 'video' ? (
-                        <video
-                            src={previewFile.file_url}
-                            controls
-                            autoPlay
-                            playsInline
-                            className="max-h-full max-w-full"
-                            style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    ) : (
-                        <img
-                            key={previewFile.id}
-                            src={previewFile.file_url}
-                            alt={previewFile.file_name}
-                            draggable={false}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                                maxWidth: '100%',
-                                maxHeight: '100%',
-                                width: 'auto',
-                                height: 'auto',
-                                objectFit: 'contain',
-                                userSelect: 'none',
-                                boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
-                            }}
-                        />
+                    {files.length === 0 && folders.length === 0 && (
+                        <div className="h-[50vh] flex flex-col items-center justify-center text-text-tertiary/20">
+                            <Globe className="h-16 w-16 mb-4 animate-pulse opacity-10" />
+                            <span className="text-[11px] font-black uppercase tracking-[0.3em]">This folder is empty</span>
+                        </div>
                     )}
+                </div>
+            </div>
+
+            {/* SYNC WIDGET */}
+            {operation && (
+                <div className="fixed bottom-6 right-6 z-[100] w-[calc(100%-48px)] max-w-[320px] glass-panel bg-bg-surface/90 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-fade-in translate-y-0">
+                    <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                                {operation.progress < 100 ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <Check className="h-4 w-4 text-green-500" />}
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest block">{operation.type}</span>
+                                <span className="text-[9px] text-text-tertiary font-bold uppercase tracking-tighter block mt-0.5">{operation.count} Elements</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-5">
+                        <div className="flex items-center justify-between mb-3 text-[10px] font-black uppercase tracking-widest">
+                            <span className="text-text-tertiary">{operation.progress === 100 ? 'Process Complete' : 'Processing...'}</span>
+                            <span className="text-primary">{operation.progress}%</span>
+                        </div>
+                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary transition-all duration-700 ease-out shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]" style={{ width: `${operation.progress}%` }} />
+                        </div>
+                    </div>
                 </div>
             )}
 
-            {/* Mobile Floating Action Button (Upload) */}
-            {canUpload && !selectedFiles.size && (
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="md:hidden fixed bottom-6 right-6 h-14 w-14 rounded-full bg-brand text-bg-base shadow-xl flex items-center justify-center z-40 active:scale-95 transition-transform"
-                >
-                    <Plus className="h-6 w-6" />
-                </button>
-            )}
-
-            {/* Share Modal */}
-            {showShareModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-bg-surface border border-border-highlight rounded-xl w-full max-w-sm shadow-card p-6 relative">
-                        <button onClick={() => setShowShareModal(false)} className="absolute top-4 right-4 text-text-tertiary hover:text-text-primary p-2">
-                            <X className="h-6 w-6" />
-                        </button>
-
-                        <h3 className="text-lg font-semibold text-text-primary mb-1">Share Workspace</h3>
-                        <p className="text-sm text-text-secondary mb-6">Invite others to collaborate or view.</p>
-
-                        <div className="flex justify-center mb-6">
-                            <div className="p-3 bg-white rounded-lg">
-                                <QRCodeSVG value={getShareUrl()} size={140} />
+            {/* PREVIEW MODAL */}
+            {previewFile && (
+                <div className="fixed inset-0 z-[1000] bg-bg-base/98 backdrop-blur-3xl flex flex-col animate-fade-in" onClick={() => setPreviewFile(null)}>
+                    {/* Floating Header Overlay */}
+                    <div className="absolute top-0 inset-x-0 p-4 md:p-8 flex justify-between items-center z-[110] gap-4 pointer-events-none">
+                        <div className="flex items-center gap-3 min-w-0 flex-1 md:flex-none pointer-events-auto">
+                            <div className="bg-black/20 hover:bg-black/40 px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/10 backdrop-blur-xl min-w-0 transition-all">
+                                <span className="text-white text-[10px] md:text-xs font-black uppercase tracking-widest truncate block">{previewFile.file_name}</span>
                             </div>
                         </div>
-
-                        <div className="flex items-center gap-2 bg-bg-base border border-border-subtle rounded-md p-3 mb-4">
-                            <input readOnly value={getShareUrl()} className="bg-transparent text-sm text-text-secondary w-full outline-none" />
-                            <button onClick={copyLink} className="text-brand hover:text-white p-2">
-                                {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                        <div className="flex gap-2 md:gap-3 shrink-0 pointer-events-auto">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); toggleLike(previewFile.id); }}
+                                className={`h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl border transition-all flex items-center justify-center backdrop-blur-xl ${likedFiles.has(previewFile.id) ? 'bg-primary border-primary text-white scale-110 shadow-lg' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                            >
+                                <Heart className={`h-5 w-5 ${likedFiles.has(previewFile.id) ? 'fill-current' : ''}`} />
                             </button>
+                            {canDownload && <button onClick={(e) => { e.stopPropagation(); saveAs(previewFile.file_url, previewFile.file_name); }} className="h-10 w-10 md:h-12 md:w-12 bg-primary text-white rounded-xl md:rounded-2xl shadow-xl active:scale-90 transition-all flex items-center justify-center"><Download className="h-4 w-4 md:h-5 md:w-5" /></button>}
+                            <button onClick={() => setPreviewFile(null)} className="h-10 w-10 md:h-12 md:w-12 bg-white/10 text-white rounded-xl md:rounded-2xl border border-white/20 active:scale-90 transition-all flex items-center justify-center hover:bg-white/20 backdrop-blur-xl"><X className="h-5 w-5 md:h-6 md:w-6" /></button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex items-center justify-center p-2 md:p-4 relative overflow-hidden">
+                        {/* Ambient Background Blur for Desktop Premium Feel */}
+                        <div className="hidden md:block absolute inset-0 z-0">
+                            {previewFile.file_type === 'image' ? (
+                                <img src={previewFile.file_url} className="w-full h-full object-cover blur-[120px] opacity-40 saturate-150" alt="" />
+                            ) : (
+                                <div className="w-full h-full bg-primary/10 blur-[120px]" />
+                            )}
                         </div>
 
-                        <div className="text-center">
-                            <div className="text-xs text-text-tertiary uppercase tracking-wider mb-1">Access Code</div>
-                            <div className="text-xl font-mono font-bold text-text-primary tracking-widest">{event.event_code}</div>
-                            {/* Security Note for Owners */}
-                            {isOwner && !event.is_public && (
-                                <p className="text-[10px] text-amber-500 mt-2">
-                                    <Lock className="h-3 w-3 inline mr-1" />
-                                    Review settings to manage passkeys
-                                </p>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleNav('prev'); }}
+                            className="absolute left-2 md:left-12 p-3 md:p-5 text-white/50 hover:text-white hover:bg-black/20 rounded-full transition-all z-[110] active:scale-90 bg-black/5 backdrop-blur-md border border-white/5"
+                        >
+                            <ChevronLeft className="h-6 w-6 md:h-12 md:w-12" />
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleNav('next'); }}
+                            className="absolute right-2 md:right-12 p-3 md:p-5 text-white/50 hover:text-white hover:bg-black/20 rounded-full transition-all z-[110] active:scale-90 bg-black/5 backdrop-blur-md border border-white/5"
+                        >
+                            <ChevronRight className="h-6 w-6 md:h-12 md:w-12" />
+                        </button>
+
+                        <div className="w-full h-full flex items-center justify-center animate-zoom-in relative z-50 pt-20 pb-10" onClick={e => e.stopPropagation()}>
+                            {previewFile.file_type === 'video' ? (
+                                <div className="relative w-full h-full flex items-center justify-center max-w-[95vw]">
+                                    <video
+                                        key={previewFile.id}
+                                        controls
+                                        autoPlay
+                                        className="max-w-full max-h-[92vh] bg-black rounded-lg md:rounded-[2.5rem] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9)] border border-white/10"
+                                        playsInline
+                                        crossOrigin="anonymous"
+                                        src={previewFile.file_url}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="relative group max-w-[95vw] h-full flex items-center justify-center">
+                                    <img
+                                        src={previewFile.file_url}
+                                        className="max-w-full max-h-[92vh] object-contain rounded-lg md:rounded-[2.5rem] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9)] border border-white/10 transition-transform duration-500"
+                                        alt=""
+                                    />
+                                </div>
                             )}
                         </div>
                     </div>
+                </div>
+            )}
+
+            <ConfirmationModal
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Purge Selection?"
+                message={`Identified ${selectedFiles.size + selectedFolders.size} items for permanent removal. This action bypasses recovery buffers.`}
+                confirmText="Execute Purge"
+            />
+
+            {showShareModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-bg-base/90 backdrop-blur-2xl animate-fade-in" onClick={() => setShowShareModal(false)}>
+                    <div className="glass-panel p-6 md:p-14 rounded-[2.5rem] w-full max-w-[320px] relative text-center border-white/5 shadow-3xl" onClick={e => e.stopPropagation()}>
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full -mr-16 -mt-16" />
+                        <button onClick={() => setShowShareModal(false)} className="absolute top-4 right-4 p-2 text-text-tertiary hover:text-white transition-colors bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 z-20"><X className="h-5 w-5" /></button>
+                        <h3 className="text-xl font-black text-white mb-6 md:mb-8 uppercase italic tracking-tighter relative z-10 pt-4">Share Access</h3>
+                        <div className="bg-white p-3 rounded-[2rem] flex items-center justify-center mb-8 shadow-3xl mx-auto w-fit border-[4px] border-primary/20 relative z-10">
+                            <QRCodeSVG value={`${window.location.origin}/e/${event.event_code}`} size={150} />
+                        </div>
+                        <div className="space-y-4 relative z-10">
+                            <div className="bg-white/[0.03] p-5 rounded-2xl border border-white/5">
+                                <div className="text-[9px] uppercase text-text-tertiary mb-1 font-black tracking-[0.3em]">Event Code</div>
+                                <div className="text-xl font-mono font-black text-primary tracking-[0.4em]">{event.event_code}</div>
+                            </div>
+                            <button onClick={() => {
+                                const t = `Vault: ${event.name}\nLink: ${window.location.origin}/e/${event.event_code}\nCode: ${event.event_code}\nPasskey: ${event.passkey || 'None'}`;
+                                navigator.clipboard.writeText(t);
+                                setCopied(true);
+                                setTimeout(() => setCopied(false), 2000);
+                            }} className="w-full btn-primary h-16 rounded-[2rem] flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-2xl shadow-primary/20 border border-white/10 mt-4">
+                                {copied ? <><Check className="h-5 w-5" /> Link Copied</> : <><Copy className="h-5 w-5" /> Copy Link</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showFolderModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-bg-base/90 backdrop-blur-2xl animate-fade-in" onClick={() => setShowFolderModal(false)}>
+                    <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        const { error } = editingFolder
+                            ? await supabase.from('folders').update({ name: newFolderName }).eq('id', editingFolder.id)
+                            : await supabase.from('folders').insert({ event_id: id, parent_id: currentFolderId, name: newFolderName });
+                        if (!error) { setShowFolderModal(false); await loadContent(); }
+                    }} className="glass-panel p-10 rounded-[2.5rem] w-full max-w-sm border-white/10 shadow-3xl text-center relative overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="absolute top-0 left-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full -ml-16 -mt-16" />
+                        <h3 className="text-xl font-black text-white mb-8 uppercase italic tracking-tighter relative z-10">{editingFolder ? 'Rename Folder' : 'New Folder'}</h3>
+                        <input autoFocus className="input-field h-14 mb-8 text-center text-xl font-black bg-white/5 border-white/10 placeholder:opacity-20 relative z-10" placeholder="Folder Name" value={newFolderName} onChange={e => setNewFolderName(e.target.value)} required />
+                        <div className="flex gap-4 relative z-10">
+                            <button type="button" onClick={() => setShowFolderModal(false)} className="btn-secondary h-12 flex-1 text-[10px] font-black uppercase tracking-widest bg-transparent border-white/10">Cancel</button>
+                            <button type="submit" className="btn-primary h-12 flex-1 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">Apply</button>
+                        </div>
+                    </form>
                 </div>
             )}
         </div>

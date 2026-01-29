@@ -33,17 +33,15 @@ export const AuthProvider = ({ children }) => {
             const response = await originalFetch(...args);
             // Check if it's a Supabase request that failed with specific auth errors
             if (response.status === 400 || response.status === 401) {
-                // We can't easily parse the body without consuming it, so we clone
                 const clone = response.clone();
                 try {
                     const errorData = await clone.json();
                     if (errorData?.error_description === 'Invalid refresh token' ||
                         errorData?.msg === 'Invalid refresh token' ||
-                        errorData?.message === 'Invalid Refresh Token: Refresh Token Not Found') {
-                        console.warn("Session expired or invalid. Logging out.");
+                        errorData?.message?.includes('Refresh Token Not Found')) {
+                        console.warn("Auth session conflict detected. Triggering recovery...");
                         await supabase.auth.signOut();
                         setUser(null);
-                        // Optional: Clear local storage items related to supabase
                         localStorage.removeItem('sb-bxuzhfcnzuonnwgmgrnv-auth-token');
                     }
                 } catch (e) { /* ignore JSON parse errors */ }

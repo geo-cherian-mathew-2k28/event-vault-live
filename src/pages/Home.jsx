@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Shield, Zap, Search, Disc, FolderOpen } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    ArrowRight, Shield, Zap, Lock,
+    Globe, HardDrive, Share2, ChevronRight,
+    Command, Box, Activity, Sparkles,
+    ShieldCheck, Database, Fingerprint
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Home() {
     const [eventCode, setEventCode] = useState('');
+    const [isFocused, setIsFocused] = useState(false);
     const navigate = useNavigate();
     const { user } = useAuth();
 
@@ -16,74 +23,178 @@ export default function Home() {
     };
 
     return (
-        <div className="min-h-screen bg-bg-base flex flex-col pt-16">
+        <div className="min-h-screen bg-[#020202] text-white selection:bg-primary/30 font-sans antialiased overflow-x-hidden">
 
-            {/* Hero / Main Action Area */}
-            <div className="flex-1 flex flex-col items-center justify-center px-4 animate-fade-in">
+            {/* AMBIENT TEXTURE LAYER */}
+            <div className="fixed inset-0 z-0 pointer-events-none">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[800px] bg-[radial-gradient(circle_at_50%_0%,rgba(var(--primary-rgb),0.1)_0%,transparent_70%)]" />
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] brightness-200 contrast-150 mix-blend-overlay" />
+                <div className="absolute inset-0 opacity-[0.02]"
+                    style={{
+                        backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
+                        backgroundSize: '80px 80px'
+                    }}
+                />
+            </div>
 
-                <div className="w-full max-w-2xl text-center mb-12">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-bg-surface border border-border-subtle mb-8">
-                        <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-                        <span className="text-xs font-medium text-text-secondary">System Operational</span>
-                    </div>
+            <main className="relative z-10 pt-28 md:pt-48 pb-32 px-6 max-w-7xl mx-auto flex flex-col items-center">
 
-                    <h1 className="text-5xl md:text-7xl font-bold text-text-primary tracking-tight mb-6">
-                        Memora
+                {/* HIGH-IMPACT HERO */}
+                <div className="text-center mb-20 md:mb-32 w-full">
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="inline-flex items-center gap-2.5 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full mb-10 backdrop-blur-xl shadow-lg"
+                    >
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                        </span>
+                        <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.4em]">v2.5 Architecture Live</span>
+                    </motion.div>
+
+                    <h1 className="text-[14vw] md:text-8xl lg:text-[10rem] font-bold tracking-tighter leading-[0.8] mb-12 uppercase italic">
+                        Vault <span className="text-primary">Live</span>
                     </h1>
-                    <p className="text-xl text-text-secondary font-light max-w-lg mx-auto leading-relaxed">
-                        Capture. Collect. Cherish.
-                        The seamless way to gather photos from every guest.
+
+                    <p className="text-lg md:text-2xl font-semibold max-w-2xl mx-auto leading-tight text-white/40 mb-16 px-4">
+                        The world's most high-fidelity platform for <br className="hidden md:block" />
+                        <span className="text-white italic">private media archival.</span>
                     </p>
                 </div>
 
-                {/* Primary Action Card */}
-                <div className="w-full max-w-md">
-                    <div className="bg-bg-surface border border-border-subtle rounded-2xl p-2 shadow-card hover:border-border-highlight transition-colors duration-300">
-                        <form onSubmit={handleCodeSubmit} className="relative flex items-center">
-                            <Search className="absolute left-4 h-5 w-5 text-text-tertiary" />
-                            <input
-                                type="text"
-                                placeholder="Enter Event Code"
-                                className="w-full bg-transparent text-lg text-text-primary placeholder-text-tertiary px-12 py-4 outline-none font-mono uppercase tracking-widest"
-                                value={eventCode}
-                                onChange={(e) => setEventCode(e.target.value)}
-                                maxLength={6}
-                                autoFocus
-                            />
-                            <button
-                                type="submit"
-                                disabled={!eventCode}
-                                className="absolute right-2 bg-brand text-bg-base p-2.5 rounded-lg hover:bg-brand-dim disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            >
-                                <ArrowRight className="h-5 w-5" />
-                            </button>
-                        </form>
-                    </div>
+                {/* THE CORE PORTAL - HIGH TACTILE DESIGN */}
+                <div className="w-full max-w-2xl mx-auto mb-48 px-2 md:px-0">
+                    <div className="relative group">
+                        {/* Outer Glow */}
+                        <div className={`absolute -inset-4 bg-primary/10 blur-[60px] rounded-[3rem] transition-opacity duration-1000 ${isFocused ? 'opacity-100' : 'opacity-0'}`} />
 
-                    <div className="mt-8 flex justify-center gap-6">
-                        {user ? (
-                            <Link to="/events" className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors flex items-center gap-2">
-                                <FolderOpen className="h-4 w-4" /> Go to Dashboard
-                            </Link>
-                        ) : (
-                            <>
-                                <Link to="/login" className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">
-                                    Log In
-                                </Link>
-                                <span className="text-border-subtle">|</span>
-                                <Link to="/register" className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors">
-                                    Create Account
-                                </Link>
-                            </>
-                        )}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-white/[0.02] border border-white/10 p-2 rounded-[3.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] backdrop-blur-3xl relative overflow-hidden"
+                        >
+                            <div className="bg-[#050505] rounded-[3.3rem] p-8 md:p-14 border border-white/5">
+                                <div className="flex justify-between items-center mb-10">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                                            <Lock className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="hidden md:block">
+                                            <div className="text-[10px] font-black text-white/40 uppercase tracking-widest">Protocol-01</div>
+                                            <div className="text-[9px] font-bold text-primary uppercase tracking-[0.2em] animate-pulse">Established</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-1.5 grayscale opacity-20">
+                                        <div className="h-1.5 w-6 bg-white rounded-full" />
+                                        <div className="h-1.5 w-1.5 bg-white rounded-full" />
+                                        <div className="h-1.5 w-1.5 bg-white rounded-full" />
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleCodeSubmit} className="flex flex-col gap-6">
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="ENTER VAULT CODE"
+                                            onFocus={() => setIsFocused(true)}
+                                            onBlur={() => setIsFocused(false)}
+                                            className="w-full h-20 md:h-24 bg-white/5 border border-white/10 rounded-3xl px-10 font-mono text-3xl md:text-4xl text-primary font-black uppercase tracking-[0.5em] focus:border-primary/50 outline-none transition-all placeholder:text-white/5 text-center md:text-left"
+                                            value={eventCode}
+                                            onChange={(e) => setEventCode(e.target.value)}
+                                            maxLength={6}
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={eventCode.length < 4}
+                                        className="h-20 bg-primary text-white rounded-[2rem] flex items-center justify-center gap-4 font-black text-sm uppercase tracking-[0.3em] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-0 transition-all shadow-2xl shadow-primary/40"
+                                    >
+                                        Establish Link <ArrowRight className="h-5 w-5" />
+                                    </button>
+                                </form>
+
+                                <div className="mt-12 pt-10 border-t border-white/5 flex flex-wrap gap-4">
+                                    {user ? (
+                                        <Link to="/events" className="flex-1 h-16 bg-white/5 border border-white/10 text-white rounded-2xl flex items-center justify-center gap-3 font-black text-[10px] uppercase tracking-[0.4em] hover:bg-white/10 transition-all">
+                                            Go to Dashboard <ChevronRight className="h-4 w-4" />
+                                        </Link>
+                                    ) : (
+                                        <>
+                                            <Link to="/login" className="flex-1 h-16 bg-white/5 border border-white/10 text-white rounded-2xl flex items-center justify-center font-black text-[10px] uppercase tracking-[0.4em] hover:bg-white/10 transition-all">
+                                                Sign In
+                                            </Link>
+                                            <Link to="/register" className="flex-1 h-16 bg-white text-black rounded-2xl flex items-center justify-center font-black text-[10px] uppercase tracking-[0.4em] hover:bg-primary hover:text-white transition-all">
+                                                Create Vault
+                                            </Link>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
                 </div>
-            </div>
 
-            {/* Footer / Status */}
-            <div className="py-8 text-center bg-bg-base/50 backdrop-blur-sm border-t border-border-subtle flex flex-col items-center gap-4">
-                {/* Developer Credit */}
-                <p className="text-xs text-text-tertiary">SECURE INFRASTRUCTURE • END-TO-END ACCESS CONTROL</p>
+                {/* VENTURE PILLARS - BENTO STYLE */}
+                <div className="w-full max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <HomeBento
+                            className="md:col-span-8 h-[300px]"
+                            icon={<ShieldCheck className="text-primary" />}
+                            title="Zero-Leak Infrastructure"
+                            desc="Leveraging AWS S3 and Postgres RLS to ensure hardware-level isolation of your private media assets."
+                        />
+                        <HomeBento
+                            className="md:col-span-4 h-[300px]"
+                            icon={<Zap className="text-amber-500" />}
+                            title="Edge Fidelity"
+                            desc="Global distribution nodes."
+                        />
+                        <HomeBento
+                            className="md:col-span-4 h-[300px]"
+                            icon={<HardDrive className="text-blue-500" />}
+                            title="1:1 Raw Archival"
+                            desc="Zero compression policy."
+                        />
+                        <HomeBento
+                            className="md:col-span-8 h-[300px]"
+                            icon={<Fingerprint className="text-emerald-500" />}
+                            title="Asymmetric Security"
+                            desc="Cryptographically signed links and session-based access tokens provide an unbreakable shield around your event memories."
+                        />
+                    </div>
+                </div>
+
+            </main>
+
+            {/* MINIMALIST FOOTER */}
+            <footer className="py-20 px-6 border-t border-white/5">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12 text-[10px] font-black text-white/20 uppercase tracking-[0.6em] italic">
+                    <div className="flex gap-10">
+                        <Link to="/about" className="hover:text-primary transition-colors">Architecture</Link>
+                        <Link to="/about" className="hover:text-primary transition-colors">Engineering</Link>
+                        <Link to="/about" className="hover:text-primary transition-colors">Venture</Link>
+                    </div>
+                    <span>© 2026 Memora Infrastructure Group</span>
+                </div>
+            </footer>
+        </div>
+    );
+}
+
+function HomeBento({ className, icon, title, desc }) {
+    return (
+        <div className={`p-10 rounded-[2.5rem] bg-white/[0.01] border border-white/5 hover:border-white/10 transition-all group flex flex-col justify-between overflow-hidden relative ${className}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative z-10">
+                <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
+                    {React.cloneElement(icon, { size: 24, strokeWidth: 1.5 })}
+                </div>
+                <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4 leading-none">{title}</h3>
+                <p className="text-sm font-bold text-white/30 uppercase tracking-tight leading-relaxed max-w-sm">{desc}</p>
+            </div>
+            <div className="absolute -bottom-10 -right-10 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
+                {React.cloneElement(icon, { size: 160, strokeWidth: 0.5 })}
             </div>
         </div>
     );

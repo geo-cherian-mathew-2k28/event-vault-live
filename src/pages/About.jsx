@@ -1,101 +1,189 @@
-import React from 'react';
-import { Shield, Users, Database, Lock, Zap, Globe, ArrowRight } from 'lucide-react';
+import React, { useRef } from 'react';
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import {
+    Shield, Activity, Zap, HardDrive,
+    ExternalLink, ArrowRight, Layers,
+    Lock, Server, Globe, Fingerprint,
+    Command, Box, Database, Cpu
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function About() {
+    const containerRef = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start start", "end end"]
+    });
+
+    const scaleX = useSpring(scrollYProgress, {
+        stiffness: 100,
+        damping: 30,
+        restDelta: 0.001
+    });
+
     return (
-        <div className="min-h-screen bg-dark-bg text-white pt-24 pb-12">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#020202] text-white selection:bg-primary/30 font-sans antialiased overflow-x-hidden" ref={containerRef}>
 
-                {/* Header */}
-                <div className="text-center max-w-3xl mx-auto mb-20 animate-slide-up">
-                    <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-6">
-                        <Shield className="h-8 w-8 text-primary" />
-                    </div>
-                    <h1 className="text-4xl md:text-5xl font-bold mb-6">
-                        Reimagining <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400">Secure Sharing</span>
-                    </h1>
-                    <p className="text-xl text-slate-400 leading-relaxed">
-                        EventVault was built to solve a simple problem: sharing memories shouldn't mean compromising privacy.
-                        We combine enterprise-grade security with consumer-grade simplicity.
-                    </p>
-                </div>
+            {/* PROGRESS GAUGE */}
+            <motion.div className="fixed top-0 left-0 right-0 h-1.5 bg-primary z-[100] origin-left shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]" style={{ scaleX }} />
 
-                {/* Mission Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
-                    <AboutCard
-                        icon={<Lock className="h-6 w-6 text-blue-400" />}
-                        title="Privacy First"
-                        desc="Your data is yours. We use Row Level Security ensuring only authorized eyes see your content."
+            {/* ATMOSPHERIC LAYER */}
+            <div className="fixed inset-0 z-0 pointer-events-none">
+                <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 blur-[150px] rounded-full -mr-96 -mt-96 opacity-40" />
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.1] mix-blend-overlay" />
+            </div>
+
+            {/* HERO: THE ARCHITECTURE MANIFESTO */}
+            <section className="relative z-10 pt-32 pb-40 px-6 max-w-7xl mx-auto flex flex-col items-center">
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-white/[0.03] border border-white/10 rounded-full mb-12 backdrop-blur-md"
+                >
+                    <Command className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/50">Infrastructure Manifesto v4.0</span>
+                </motion.div>
+
+                <h1 className="text-[12vw] md:text-8xl lg:text-[11rem] font-bold tracking-tighter uppercase italic leading-[0.8] mb-12 text-center">
+                    Beyond <br />
+                    <span className="text-primary translate-x-12 inline-block">Protocol.</span>
+                </h1>
+
+                <p className="text-xl md:text-3xl font-black max-w-4xl mx-auto uppercase italic tracking-tighter text-white/30 leading-tight text-center px-4">
+                    Architecting high-fidelity digital sanctuaries. <br />
+                    Engineered for zero-leak archival and atomic bandwidth.
+                </p>
+            </section>
+
+            {/* BENTO TECH GRID */}
+            <section className="relative z-10 px-6 py-20 max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+                    {/* PRIMARY PILLAR */}
+                    <AboutBento
+                        className="md:col-span-8 h-[400px]"
+                        icon={<Shield className="text-primary" />}
+                        title="Isolation Protocol"
+                        desc="Native Row Level Security (RLS) handles data isolation at the core database level, ensuring your media is physically and logically invisible to unauthorized vectors."
+                        tag="CORE SECURITY"
                     />
-                    <AboutCard
-                        icon={<Zap className="h-6 w-6 text-yellow-400" />}
-                        title="Lightning Fast"
-                        desc="Built on modern edge infrastructure for global low-latency access to your media."
-                    />
-                    <AboutCard
-                        icon={<Globe className="h-6 w-6 text-green-400" />}
-                        title="Universal Access"
-                        desc="Share with anyone, anywhere. No account required for public events, secure codes for private ones."
-                    />
-                </div>
 
-                {/* Story Section */}
-                <div className="bg-dark-card rounded-3xl p-8 md:p-12 border border-slate-800 relative overflow-hidden mb-20">
-                    <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+                    <AboutBento
+                        className="md:col-span-4 h-[400px]"
+                        icon={<Zap className="text-amber-500" />}
+                        title="Edge Speed"
+                        desc="Optimized for millisecond retrieval globally."
+                        tag="PERFORMANCE"
+                    />
 
-                    <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
-                        <div>
-                            <h2 className="text-3xl font-bold mb-6">Why EventVault?</h2>
-                            <div className="space-y-6 text-slate-300">
-                                <p>
-                                    Generic cloud drives are messy. Folders get lost, permissions get broken, and links expire.
-                                    Social media compresses your photos and mines your data.
-                                </p>
-                                <p>
-                                    <strong className="text-white">EventVault is different.</strong> We built an event-centric model
-                                    that treats your gathering—whether it's a wedding, conference, or trip—as a first-class citizen.
-                                </p>
-                                <div className="pt-4">
-                                    <Link to="/register" className="btn-primary inline-flex items-center gap-2">
-                                        Start Your Vault <ArrowRight className="h-4 w-4" />
-                                    </Link>
-                                </div>
-                            </div>
+                    <AboutBento
+                        className="md:col-span-4 h-[400px]"
+                        icon={<HardDrive className="text-blue-500" />}
+                        title="1:1 Fidelity"
+                        desc="Zero archival compression policy."
+                        tag="QUALITY"
+                    />
+
+                    {/* DYNAMIC INTEGRITY DASHBOARD */}
+                    <AboutBento
+                        className="md:col-span-8 h-[400px] bg-primary/5 border-primary/20"
+                        icon={<Activity className="text-primary animate-pulse" />}
+                        title="System Integrity Monitor"
+                        desc="Real-time operational health feedback for the Memora production environment."
+                        tag="LIVE DIAGNOSTICS"
+                    >
+                        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10">
+                            <StatTile label="DB ENGINE" value="NOMINAL" />
+                            <StatTile label="AUTH GATE" value="ACTIVE" />
+                            <StatTile label="CDN EDGE" value="READY" />
+                            <StatTile label="ENCRYPT" value="AES256" />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <StatCard number="100%" label="Encrypted" />
-                            <StatCard number="0" label="Ads" />
-                            <StatCard number="24/7" label="Access" />
-                            <StatCard number="∞" label="Memories" />
+                    </AboutBento>
+                </div>
+            </section>
+
+            {/* ENGINEER SIGNATURE SECTION */}
+            <section className="relative z-10 py-64 px-6 overflow-hidden border-t border-white/5 bg-white/[0.01]">
+                <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-24 items-center">
+                    <div className="text-left">
+                        <div className="text-[10px] font-black text-primary uppercase tracking-[1em] mb-12 italic">Chief Infrastructure Engineer</div>
+                        <h2 className="text-7xl md:text-9xl font-black text-white italic tracking-tighter uppercase leading-none mb-12">
+                            Geo Cherian <br />Mathew
+                        </h2>
+                        <div className="flex flex-col sm:flex-row gap-6">
+                            <a
+                                href="https://geo-cherian-mathew-2k28.github.io/geo-portfolio/"
+                                target="_blank" rel="noopener noreferrer"
+                                className="h-18 px-12 bg-white text-black flex items-center justify-center gap-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] hover:bg-primary hover:text-white transition-all shadow-2xl active:scale-95"
+                            >
+                                Access Portfolio <ExternalLink className="h-4 w-4" />
+                            </a>
+                            <Link to="/register" className="h-18 px-12 bg-white/5 border border-white/10 text-white flex items-center justify-center gap-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] hover:bg-white/10 transition-all active:scale-95">
+                                Start Vault <ArrowRight className="h-4 w-4" />
+                            </Link>
                         </div>
                     </div>
+
+                    <div className="hidden md:flex flex-col gap-12 text-white/5 select-none">
+                        <TechLine icon={<Server />} label="INFRASTRUCTURE AS CODE" />
+                        <TechLine icon={<Database />} label="POSTGRES SQL CLUSTER" />
+                        <TechLine icon={<Cpu />} label="EDGE COMPUTE NODES" />
+                    </div>
                 </div>
+            </section>
 
-                {/* Developer Credit Removed - Uses Global Footer */}
+            {/* INVESTOR FOOTER */}
+            <footer className="py-20 px-6 border-t border-white/5 bg-[#000]">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12 text-[9px] font-black text-white/20 uppercase tracking-[0.6em] italic">
+                    <div className="flex gap-12">
+                        <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+                        <Link to="/about" className="hover:text-primary transition-colors">Architecture</Link>
+                        <Link to="/about" className="hover:text-primary transition-colors">Privacy Flow</Link>
+                    </div>
+                    <span>© 2026 Memora / Secure Data Structures</span>
+                </div>
+            </footer>
+        </div>
+    );
+}
 
+function AboutBento({ className, icon, title, desc, tag, children }) {
+    return (
+        <div className={`p-10 md:p-14 rounded-[3.5rem] bg-white/[0.01] border border-white/5 hover:border-white/10 transition-all group flex flex-col justify-between overflow-hidden relative ${className}`}>
+            <div className="relative z-10">
+                <div className="flex justify-between items-start mb-12">
+                    <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary transition-all duration-500">
+                        {React.cloneElement(icon, { size: 24, strokeWidth: 1.5, className: 'group-hover:text-white transition-colors' })}
+                    </div>
+                    <span className="text-[9px] font-black text-primary uppercase tracking-[0.4em] px-4 py-2 bg-primary/5 border border-primary/10 rounded-full">{tag}</span>
+                </div>
+                <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-6 leading-none">{title}</h3>
+                <p className="text-lg font-bold text-white/30 uppercase italic tracking-tighter leading-snug max-w-sm group-hover:text-white/60 transition-colors">{desc}</p>
+            </div>
+            {children}
+            <div className="absolute -bottom-10 -right-10 opacity-[0.02] group-hover:opacity-[0.06] transition-opacity">
+                {React.cloneElement(icon, { size: 200, strokeWidth: 0.5 })}
             </div>
         </div>
     );
 }
 
-function AboutCard({ icon, title, desc }) {
+function StatTile({ label, value }) {
     return (
-        <div className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 transition-colors">
-            <div className="bg-slate-900 w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                {icon}
-            </div>
-            <h3 className="text-xl font-bold mb-2">{title}</h3>
-            <p className="text-slate-400">{desc}</p>
+        <div className="flex flex-col gap-2">
+            <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em]">{label}</span>
+            <span className="text-2xl font-black text-primary italic tracking-widest">{value}</span>
         </div>
     );
 }
 
-function StatCard({ number, label }) {
+function TechLine({ icon, label }) {
     return (
-        <div className="bg-slate-900/50 p-6 rounded-2xl text-center border border-white/5">
-            <div className="text-3xl font-bold text-primary mb-1">{number}</div>
-            <div className="text-sm text-slate-400">{label}</div>
+        <div className="flex items-center gap-6 group hover:translate-x-4 transition-transform duration-500">
+            <div className="h-14 w-14 border border-white/5 rounded-2xl flex items-center justify-center">
+                {React.cloneElement(icon, { size: 24 })}
+            </div>
+            <span className="text-xs font-black uppercase tracking-[0.8em]">{label}</span>
         </div>
     );
 }
