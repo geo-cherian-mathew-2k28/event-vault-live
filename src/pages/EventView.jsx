@@ -561,18 +561,26 @@ export default function EventView() {
 
     if (!event) return (
         <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center p-8 text-center space-y-8 pt-24">
-            <div className="bg-amber-500/10 p-8 rounded-xl border border-amber-500/20 shadow-2xl shadow-amber-900/10">
-                <Lock className="h-16 w-16 text-amber-500" />
+            <div className="bg-amber-500/10 p-8 rounded-xl border border-amber-500/20 shadow-2xl shadow-amber-900/10 relative">
+                <div className="absolute inset-0 bg-amber-500/5 blur-3xl rounded-full" />
+                <Lock className="h-16 w-16 text-amber-500 relative z-10" />
             </div>
             <div className="space-y-3">
                 <h2 className="text-2xl font-black text-white uppercase italic tracking-tight">Vault Isolated</h2>
                 <p className="text-xs text-text-tertiary max-w-xs mx-auto leading-relaxed font-bold uppercase tracking-tight">
-                    This cryptographic vault does not exist or has been permanently deprovisioned from the network.
+                    {user ? "This cryptographic vault does not exist or has been permanently deprovisioned." : "Secure connection restricted. If you were sent a link, please ensure you have the correct access parameters."}
                 </p>
             </div>
-            <button onClick={() => navigate('/events')} className="btn-secondary px-10 h-14 font-black text-xs uppercase tracking-[0.2em] transition-all">
-                Return to Dashboard
-            </button>
+            <div className="flex flex-col gap-4 w-full max-w-xs">
+                {!user && (
+                    <button onClick={() => navigate('/login')} className="btn-primary h-14 font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20">
+                        Sign In for Access
+                    </button>
+                )}
+                <button onClick={() => navigate('/')} className="btn-secondary h-14 font-black text-xs uppercase tracking-[0.2em] border-white/5 bg-white/5">
+                    Return to Home
+                </button>
+            </div>
         </div>
     );
 
