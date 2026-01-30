@@ -37,7 +37,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
     );
 };
 
-const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isLiked, onLike, onDelete, isOwner, socialEnabled }) => {
+const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isLiked, onLike, onDelete, isOwner, isAdmin, socialEnabled, user }) => {
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDelete = async (e) => {
@@ -97,15 +97,15 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                 </div>
             )}
 
-            {/* Administrative Quick Actions (Permissive Gate - RLS Enforced) */}
-            {(isOwner || (user && !isSelecting)) && (
+            {/* Administrative Quick Actions (Permissive UI Gate - RLS Enforced) */}
+            {(isOwner || isAdmin || (user && !isSelecting)) && (
                 <div className="absolute bottom-3 right-3 z-50 flex gap-2">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             saveAs(file.file_url, file.file_name);
                         }}
-                        className="h-10 px-3 rounded-2xl bg-black/80 text-white backdrop-blur-xl border border-white/20 flex items-center justify-center gap-2 hover:bg-primary hover:border-primary transition-all shadow-2xl active:scale-95"
+                        className="h-10 px-3 rounded-2xl bg-black/80 text-white backdrop-blur-xl border border-white/20 flex items-center justify-center gap-2 hover:bg-primary hover:border-primary transition-all shadow-2xl active:scale-95 group/btn"
                         title="Download Asset"
                     >
                         <Download className="h-4 w-4" />
@@ -113,7 +113,7 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                     </button>
                     <button
                         onClick={handleDelete}
-                        className="h-10 px-3 rounded-2xl bg-rose-600 text-white backdrop-blur-xl border border-rose-500/20 flex items-center justify-center gap-2 hover:bg-rose-700 transition-all shadow-2xl active:scale-95"
+                        className="h-10 px-3 rounded-2xl bg-rose-600 text-white backdrop-blur-xl border border-rose-500/20 flex items-center justify-center gap-2 hover:bg-rose-700 transition-all shadow-2xl active:scale-95 group/btn"
                         title="Purge Asset"
                     >
                         <Trash2 className="h-4 w-4" />
@@ -870,6 +870,8 @@ export default function EventView() {
                                 onLike={toggleLike}
                                 onDelete={handleDeleteFile}
                                 isOwner={isOwner || isAdmin}
+                                isAdmin={isAdmin}
+                                user={user}
                                 socialEnabled={socialProvisioned}
                                 onToggle={(id) => {
                                     const next = new Set(selectedFiles);
