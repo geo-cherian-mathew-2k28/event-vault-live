@@ -229,21 +229,21 @@ export default function EditEvent() {
                             {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-5 w-5" /> Save Configuration</>}
                         </button>
 
-                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
                             <button
                                 type="button"
                                 onClick={handleRevokeAll}
                                 disabled={revoking}
-                                className="flex-1 h-14 rounded-2xl bg-white/[0.03] border border-white/5 text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
+                                className="h-14 rounded-2xl bg-white/[0.03] border border-white/5 text-rose-500/80 hover:text-white hover:bg-rose-500 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95 disabled:opacity-50"
                             >
-                                <UserMinus className="h-4 w-4" /> Purge Records
+                                <UserMinus className="h-4 w-4" /> <span>Purge Records</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={handleDelete}
-                                className="flex-1 h-14 rounded-2xl bg-white/[0.02] border border-white/5 text-text-tertiary hover:text-white hover:bg-rose-600/20 hover:border-rose-600/40 text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
+                                className="h-14 rounded-2xl bg-white/[0.02] border border-white/10 text-text-tertiary hover:text-white hover:bg-rose-600 hover:border-rose-600 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95"
                             >
-                                <Trash2 className="h-4 w-4" /> Decommission Vault
+                                <Trash2 className="h-4 w-4" /> <span>Decommission</span>
                             </button>
                         </div>
                     </div>

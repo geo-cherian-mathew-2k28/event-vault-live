@@ -1,4 +1,5 @@
-import { Shield, Lock, Globe, HardDrive, Check, ArrowRight, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, Lock, Globe, HardDrive, Check, ArrowRight, Menu, Activity } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -127,11 +128,6 @@ function AboutCard({ icon, title, desc }) {
     );
 }
 
-function Activity({ className }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-    )
-}
 function NavLink({ to, children }) {
     return (
         <Link

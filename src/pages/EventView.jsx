@@ -351,7 +351,7 @@ export default function EventView() {
                         setLikedFiles(new Set(likes.map(l => l.file_id)));
                     }
                 } catch (e) {
-                    console.warn("Likes table possibly missing or inaccessible.");
+                    // Suppress console noise if social features aren't provisioned yet
                 }
             }
 

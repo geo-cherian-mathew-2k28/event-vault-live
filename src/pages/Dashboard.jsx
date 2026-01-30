@@ -185,20 +185,20 @@ export default function Dashboard() {
 function EventCard({ event, isOwner, onDelete, onLeave }) {
     const navigate = useNavigate();
     return (
-        <div className="group glass-panel rounded-[2rem] p-8 transition-all duration-500 hover:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] relative border-white/5 hover:border-primary/30 h-full flex flex-col overflow-hidden">
+        <div className="group glass-panel rounded-[2rem] p-6 sm:p-8 transition-all duration-500 hover:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] relative border-white/5 hover:border-primary/30 h-full flex flex-col overflow-hidden">
             <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
-            <div className="relative z-10 flex justify-between items-start mb-8">
-                <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border backdrop-blur-md shadow-lg ${event.is_public ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/5' : 'text-primary border-primary/20 bg-primary/5'}`}>
+            <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
+                <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border backdrop-blur-md shadow-lg shrink-0 ${event.is_public ? 'text-emerald-400 border-emerald-400/20 bg-emerald-400/5' : 'text-primary border-primary/20 bg-primary/5'}`}>
                     {event.is_public ? 'Public Node' : 'Encrypted'}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 self-end sm:self-auto">
                     {isOwner ? (
                         <>
-                            <button onClick={(e) => { e.preventDefault(); navigate(`/events/${event.id}/edit`); }} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-text-tertiary hover:text-white transition-all border border-white/10">
+                            <button onClick={(e) => { e.preventDefault(); navigate(`/events/${event.id}/edit`); }} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-text-tertiary hover:text-white transition-all border border-white/10 shadow-sm">
                                 <Settings className="h-4 w-4" />
                             </button>
-                            <button onClick={(e) => { e.preventDefault(); onDelete(event.id); }} className="p-3 bg-rose-500/5 hover:bg-rose-500 text-rose-500/60 hover:text-white rounded-xl transition-all border border-rose-500/10">
+                            <button onClick={(e) => { e.preventDefault(); onDelete(event.id); }} className="p-2.5 bg-rose-500/5 hover:bg-rose-500 text-rose-500/60 hover:text-white rounded-xl transition-all border border-rose-500/10 shadow-sm">
                                 <Trash2 className="h-4 w-4" />
                             </button>
                         </>
@@ -211,18 +211,18 @@ function EventCard({ event, isOwner, onDelete, onLeave }) {
             </div>
 
             <div className="relative z-10 flex-1">
-                <h3 className="text-2xl font-black text-white mb-3 truncate leading-tight italic uppercase tracking-tight group-hover:text-primary transition-colors">{event.name}</h3>
-                <p className="text-text-tertiary text-xs line-clamp-2 mb-10 font-bold uppercase tracking-tight opacity-70 leading-relaxed">{event.description || 'Secure media infrastructure.'}</p>
+                <h3 className="text-xl sm:text-2xl font-black text-white mb-3 truncate leading-tight italic uppercase tracking-tight group-hover:text-primary transition-colors">{event.name}</h3>
+                <p className="text-text-tertiary text-[10px] sm:text-xs line-clamp-2 mb-8 font-bold uppercase tracking-tight opacity-70 leading-relaxed">{event.description || 'Secure media infrastructure.'}</p>
             </div>
 
-            <div className="relative z-10 border-t border-white/5 pt-6 flex items-center justify-between">
-                <div>
-                    <span className="block text-[8px] font-black text-text-tertiary uppercase tracking-[0.4em] mb-1">Passkey Protocol</span>
-                    <span className="block text-sm font-mono font-black text-white/50 tracking-widest">{event.event_code}</span>
+            <div className="relative z-10 border-t border-white/5 pt-6 flex items-center justify-between mt-auto">
+                <div className="min-w-0 pr-4">
+                    <span className="block text-[7px] sm:text-[8px] font-black text-text-tertiary uppercase tracking-[0.4em] mb-1 truncate">ID Protocol</span>
+                    <span className="block text-xs sm:text-sm font-mono font-black text-white/50 tracking-widest truncate">{event.event_code}</span>
                 </div>
                 <button
                     onClick={() => navigate(`/events/${event.id}`)}
-                    className="h-12 w-12 bg-white/5 group-hover:bg-primary group-hover:text-white rounded-2xl flex items-center justify-center transition-all duration-500 border border-white/10 group-hover:border-primary shadow-xl group-hover:scale-110"
+                    className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 bg-white/5 group-hover:bg-primary group-hover:text-white rounded-2xl flex items-center justify-center transition-all duration-500 border border-white/10 group-hover:border-primary shadow-xl group-hover:scale-110 active:scale-95"
                 >
                     <ArrowRight className="h-5 w-5" />
                 </button>
