@@ -9,14 +9,21 @@ ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public select events" ON public.events;
 DROP POLICY IF EXISTS "Enable read access for all users" ON public.events;
 
--- 3. Implement the High-Resilience Policy
--- This allow anyone (authenticated or anonymous) to view vault metadata.
--- Deep-level data (files/folders) are still protected by their own specific RLS policies.
-CREATE POLICY "Public select events" 
-ON public.events 
-FOR SELECT 
-TO public
-USING (true);
+-- 3. Implement the High-Resilience PolicySafely
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'events' AND policyname = 'Public select events'
+    ) THEN
+        CREATE POLICY "Public select events" 
+        ON public.events 
+        FOR SELECT 
+        TO public
+        USING (true);
+    END IF;
+END
+$$;
 
 -- 4. Verify member policy exists to allow members to see their joined events
 DROP POLICY IF EXISTS "Members can view events" ON public.events;

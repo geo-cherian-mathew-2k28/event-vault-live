@@ -18,21 +18,31 @@ const setupFetchInterceptor = (projectRef) => {
             const response = await originalFetch(...args);
             // Critical Recovery Logic: Catches stale session tokens before they crash the UI
             if (response.status === 400 || response.status === 401) {
-                const clone = response.clone();
-                try {
-                    const errorData = await clone.json();
-                    if (errorData?.error_description === 'Invalid refresh token' ||
-                        errorData?.msg === 'Invalid refresh token' ||
-                        errorData?.message?.includes('Refresh Token Not Found')) {
-                        console.warn("Auth session conflict detected. Triggering recovery...");
-                        await supabase.auth.signOut();
-                        if (projectRef) {
-                            localStorage.removeItem(`sb-${projectRef}-auth-token`);
+                const url = args[0]?.toString() || '';
+                if (url.includes('/auth/v1/token')) {
+                    const clone = response.clone();
+                    try {
+                        const errorData = await clone.json();
+                        const isInvalidToken = errorData?.error_description?.includes('refresh token') ||
+                            errorData?.msg?.includes('refresh token') ||
+                            errorData?.message?.includes('Refresh Token Not Found');
+
+                        if (isInvalidToken) {
+                            console.warn("Auth session conflict detected. Clearing local state...");
+                            // Atomic cleanup
+                            if (projectRef) {
+                                localStorage.removeItem(`sb-${projectRef}-auth-token`);
+                            }
+                            // Don't await signOut here as it might trigger another fetch
+                            supabase.auth.signOut().catch(() => { });
+
+                            // Only redirect if we are not already on the home page to avoid loops
+                            if (window.location.pathname !== '/' && window.location.pathname !== '/login') {
+                                window.location.href = '/';
+                            }
                         }
-                        // Redirect to home for a clean state instead of infinite reload
-                        window.location.href = '/';
-                    }
-                } catch (e) { /* silent parse fail */ }
+                    } catch (e) { /* silent parse fail */ }
+                }
             }
             return response;
         } catch (error) {
@@ -58,34 +68,34 @@ export const AuthProvider = ({ children }) => {
             }
         }, 4500);
 
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+                setUser(null);
+                setLoading(false);
+            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                setUser(session?.user ?? null);
+                setLoading(false);
+            } else if (event === 'INITIAL_SESSION') {
+                setUser(session?.user ?? null);
+                setLoading(false);
+            }
+        });
+
         const initAuth = async () => {
             try {
                 setInitializationStage('Verifying Session');
-                const { data: { session }, error } = await supabase.auth.getSession();
-
-                if (error) throw error;
-
-                setUser(session?.user ?? null);
-                setInitializationStage('Finalizing Interface');
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) setUser(session.user);
             } catch (err) {
-                console.warn("Auth initialization handshake failed. Proceeding as guest.");
+                console.warn("Auth poll skipped.");
             } finally {
-                // Ensure atomic state update
+                setInitializationStage('Finalizing Interface');
                 setTimeout(() => {
                     setLoading(false);
                     clearTimeout(safetyTimeout);
-                }, 400);
+                }, 100);
             }
         };
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-                setUser(null);
-            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                setUser(session?.user ?? null);
-            }
-            setLoading(false);
-        });
 
         initAuth();
 
