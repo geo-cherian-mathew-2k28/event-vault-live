@@ -95,7 +95,7 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
             )}
 
             {/* Administrative Quick Actions (ALWAYS VISIBLE FOR ADMINS) */}
-            {(isOwner || isAdmin) && !isSelecting && (
+            {isOwner && !isSelecting && (
                 <div className="absolute bottom-3 right-3 z-50 flex gap-2">
                     <button
                         onClick={(e) => {
