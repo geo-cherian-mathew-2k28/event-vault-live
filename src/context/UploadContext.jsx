@@ -40,6 +40,9 @@ export function UploadProvider({ children }) {
 
                 const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(filePath);
 
+                const isImage = file.type.startsWith('image/') || file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|heic|avif)$/);
+                const isVideo = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|mov|ogg|m4v|3gp|mkv)$/);
+
                 const { error: dbError } = await supabase.from('media_files').insert({
                     event_id: eventId,
                     folder_id: folderId,
@@ -47,7 +50,7 @@ export function UploadProvider({ children }) {
                     file_url: publicUrl,
                     storage_path: filePath,
                     file_name: file.name,
-                    file_type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file',
+                    file_type: isImage ? 'image' : isVideo ? 'video' : 'file',
                     size_bytes: file.size
                 });
 

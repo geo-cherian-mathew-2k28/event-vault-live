@@ -110,14 +110,14 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
             )}
 
             <div className="w-full h-full flex items-center justify-center relative bg-bg-base/40">
-                {file.file_type === 'image' ? (
+                {(file.file_type === 'image' || (file.file_name && file.file_name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|heic)$/))) ? (
                     <img
                         src={file.file_url}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         loading="lazy"
                         alt=""
                     />
-                ) : file.file_type === 'video' ? (
+                ) : (file.file_type === 'video' || (file.file_name && file.file_name.toLowerCase().match(/\.(mp4|webm|mov|ogg|m4v)$/))) ? (
                     <div className="w-full h-full relative">
                         <video
                             src={file.file_url + "#t=0.5"}
@@ -125,8 +125,8 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                             preload="metadata"
                             muted
                             playsInline
-                            onMouseOver={e => e.currentTarget.play()}
-                            onMouseOut={e => { e.currentTarget.pause(); e.currentTarget.currentTime = 0.5; }}
+                            onMouseOver={e => { try { e.currentTarget.play(); } catch (err) { } }}
+                            onMouseOut={e => { try { e.currentTarget.pause(); e.currentTarget.currentTime = 0.5; } catch (err) { } }}
                         />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
                             <div className="h-10 w-10 md:h-12 md:w-12 rounded-full border border-white/20 flex items-center justify-center backdrop-blur-sm group-hover:opacity-0 transition-opacity">
@@ -740,7 +740,7 @@ export default function EventView() {
                 </div>
             </div>
 
-            <div className="flex-1 px-4 md:px-8 pt-14 md:pt-20 pb-40">
+            <div className="flex-1 px-4 md:px-8 pt-6 md:pt-10 pb-40">
                 <div className="max-w-7xl mx-auto">
                     {/* Visual Folders Grid - Premium Density */}
                     {folders.length > 0 && (
