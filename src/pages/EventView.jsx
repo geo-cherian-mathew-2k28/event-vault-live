@@ -280,6 +280,35 @@ export default function EventView() {
         if (event && canView) loadContent();
     }, [currentFolderId, event, canView]);
 
+    // REAL-TIME ENGINE: Synchronizes vault state across all clients
+    useEffect(() => {
+        if (!event || !canView) return;
+
+        const channel = supabase.channel(`vault-sync-${id}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'media_files',
+                filter: `event_id=eq.${id}`
+            }, (payload) => {
+                // Low-latency sync for high-bandwidth vaults
+                loadContent();
+            })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'folders',
+                filter: `event_id=eq.${id}`
+            }, (payload) => {
+                loadContent();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [id, event, canView, loadContent]);
+
     useEffect(() => {
         const handleKeys = (e) => {
             if (e.key === 'Escape') {
