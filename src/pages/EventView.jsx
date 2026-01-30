@@ -214,6 +214,7 @@ export default function EventView() {
     });
 
     // Access Layer State
+    const [deletedIds, setDeletedIds] = useState(new Set());
     const [hasGuestAccess, setHasGuestAccess] = useState(false);
     const [isMember, setIsMember] = useState(false);
     const [userRole, setUserRole] = useState(null);
@@ -332,8 +333,9 @@ export default function EventView() {
                 mQuery.order('created_at', { ascending: false })
             ]);
 
-            setFolders(foldersRes.data || []);
-            setFiles(filesRes.data || []);
+            // Filter out items that were just deleted to prevent ghosting
+            setFolders((foldersRes.data || []).filter(f => !deletedIds.has(f.id)));
+            setFiles((filesRes.data || []).filter(f => !deletedIds.has(f.id)));
 
             if (socialProvisioned) {
                 try {
@@ -363,7 +365,8 @@ export default function EventView() {
     }, [id, currentFolderId, user, socialProvisioned]);
 
     const handleDeleteFile = async (fileId, storagePath) => {
-        // Optimistic UI: Hide immediately
+        // Optimistic UI: Hide immediately and mark as deleted locally
+        setDeletedIds(prev => new Set([...prev, fileId]));
         const originalFiles = [...files];
         setFiles(prev => prev.filter(f => f.id !== fileId));
 
@@ -375,8 +378,9 @@ export default function EventView() {
             if (error) throw error;
         } catch (e) {
             console.error("Delete failed:", e);
+            setDeletedIds(prev => { const next = new Set(prev); next.delete(fileId); return next; });
             setFiles(originalFiles); // Rollback on error
-            alert("Administrative protocol failure. Item could not be purged.");
+            alert("Delete failed. You may not have administrative permissions for this asset.");
         }
     };
 
@@ -395,14 +399,16 @@ export default function EventView() {
     };
 
     const handleBulkDelete = async () => {
+        const fileIds = Array.from(selectedFiles);
+        const folderIds = Array.from(selectedFolders);
+
+        // Optimistic UI update & Ghosting prevention
+        setDeletedIds(prev => new Set([...prev, ...fileIds, ...folderIds]));
         const originalFiles = [...files];
         const originalFolders = [...folders];
 
-        // Optimistic UI update
         setFiles(prev => prev.filter(f => !selectedFiles.has(f.id)));
         setFolders(prev => prev.filter(f => !selectedFolders.has(f.id)));
-        const fileIds = Array.from(selectedFiles);
-        const folderIds = Array.from(selectedFolders);
 
         // Reset selection immediately
         setSelectedFiles(new Set());
@@ -756,7 +762,7 @@ export default function EventView() {
 
                                 <div className="h-6 w-px bg-white/10 shrink-0" />
 
-                                {(isAdmin || isOwner || (user && event && String(user.id) === String(event.owner_id))) && (
+                                {(user) && (
                                     <button
                                         onClick={() => setShowDeleteConfirm(true)}
                                         className="h-10 px-5 shrink-0 flex items-center justify-center gap-2 text-white bg-rose-600 hover:bg-rose-700 rounded-2xl transition-all shadow-xl border border-rose-500/20 group active:scale-95"
