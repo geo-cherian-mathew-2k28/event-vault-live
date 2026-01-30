@@ -190,10 +190,14 @@ export default function EventView() {
     const [copied, setCopied] = useState(false);
     const [likedFiles, setLikedFiles] = useState(new Set());
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    // Definitive Social Gate: If sessionStorage marks as unprovisioned, we never even TRY.
+    // Definitive Social Gate: If storage marks as unprovisioned, we never even TRY.
     const [socialProvisioned, setSocialProvisioned] = useState(() => {
-        const stored = sessionStorage.getItem('social_provisioned');
-        return stored !== 'false';
+        try {
+            const stored = window.sessionStorage?.getItem('social_provisioned');
+            return stored !== 'false';
+        } catch (e) {
+            return true; // Default to true if storage is blocked
+        }
     });
 
     // Access Layer State
@@ -222,8 +226,12 @@ export default function EventView() {
         if (event?.is_public) return true;
         if (hasGuestAccess) return true;
         // Check session storage for existing grant
-        const granted = sessionStorage.getItem(`vault_access_${id}`);
-        if (granted === 'true') return true;
+        try {
+            const granted = window.sessionStorage?.getItem(`vault_access_${id}`);
+            if (granted === 'true') return true;
+        } catch (e) {
+            // Storage blocked or unavailable
+        }
         return false;
     }, [isAdmin, isMember, event, hasGuestAccess, id]);
 
@@ -258,7 +266,9 @@ export default function EventView() {
                 }
             } catch (e) {
                 setSocialProvisioned(false);
-                sessionStorage.setItem('social_provisioned', 'false');
+                try {
+                    window.sessionStorage?.setItem('social_provisioned', 'false');
+                } catch (se) { }
             }
         };
 
@@ -334,6 +344,7 @@ export default function EventView() {
                 }
             }
         } catch (err) {
+            console.error("Event fetch failed:", err);
             setNetworkError(true);
         } finally {
             setLoading(false);
@@ -611,6 +622,23 @@ export default function EventView() {
         </div>
     );
 
+    if (!event) return (
+        <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center p-8 text-center space-y-8 pt-24">
+            <div className="bg-amber-500/10 p-8 rounded-xl border border-amber-500/20 shadow-2xl shadow-amber-900/10">
+                <Lock className="h-16 w-16 text-amber-500" />
+            </div>
+            <div className="space-y-3">
+                <h2 className="text-2xl font-black text-white uppercase italic tracking-tight">Vault Isolated</h2>
+                <p className="text-xs text-text-tertiary max-w-xs mx-auto leading-relaxed font-bold uppercase tracking-tight">
+                    This cryptographic vault does not exist or has been permanently deprovisioned from the network.
+                </p>
+            </div>
+            <button onClick={() => navigate('/events')} className="btn-secondary px-10 h-14 font-black text-xs uppercase tracking-[0.2em] transition-all">
+                Return to Dashboard
+            </button>
+        </div>
+    );
+
     if (!canView) {
         return (
             <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 relative overflow-hidden">
@@ -627,7 +655,7 @@ export default function EventView() {
                     </div>
 
                     <h2 className="text-2xl font-black text-white mb-2 uppercase italic tracking-tighter relative z-10">Vault Protection</h2>
-                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-10">Shared via {event.event_code}</p>
+                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-10">Shared via {event?.event_code || 'Secure Link'}</p>
 
                     <form onSubmit={handleJoin} className="space-y-4 relative z-10">
                         <div className="space-y-1.5 text-left">
