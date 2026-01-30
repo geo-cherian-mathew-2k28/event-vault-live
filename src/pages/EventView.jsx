@@ -106,18 +106,18 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                             saveAs(file.file_url, file.file_name);
                         }}
                         className="h-10 px-3 rounded-2xl bg-black/80 text-white backdrop-blur-xl border border-white/20 flex items-center justify-center gap-2 hover:bg-primary hover:border-primary transition-all shadow-2xl active:scale-95 group/btn"
-                        title="Download Asset"
+                        title="Download File"
                     >
                         <Download className="h-4 w-4" />
-                        <span className="text-[9px] font-black uppercase tracking-tighter hidden sm:inline">Get</span>
+                        <span className="text-[9px] font-black uppercase tracking-tighter hidden sm:inline">Save</span>
                     </button>
                     <button
                         onClick={handleDelete}
                         className="h-10 px-3 rounded-2xl bg-rose-600 text-white backdrop-blur-xl border border-rose-500/20 flex items-center justify-center gap-2 hover:bg-rose-700 transition-all shadow-2xl active:scale-95 group/btn"
-                        title="Purge Asset"
+                        title="Delete File"
                     >
                         <Trash2 className="h-4 w-4" />
-                        <span className="text-[9px] font-black uppercase tracking-tighter">Purge</span>
+                        <span className="text-[9px] font-black uppercase tracking-tighter">Delete</span>
                     </button>
                 </div>
             )}
@@ -426,7 +426,7 @@ export default function EventView() {
             console.error("Bulk delete failed:", e);
             setFiles(originalFiles);
             setFolders(originalFolders);
-            alert("Bulk purge failed. System restored to previous state.");
+            alert("Administrative failure. Selection could not be deleted.");
         }
     };
 
@@ -579,7 +579,12 @@ export default function EventView() {
     useEffect(() => {
         if (!event || !canView) return;
         const channel = supabase.channel(`vault-sync-${id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'media_files', filter: `event_id=eq.${id}` }, () => loadContent())
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'media_files', filter: `event_id=eq.${id}` }, () => loadContent())
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'media_files', filter: `event_id=eq.${id}` }, () => loadContent())
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'media_files', filter: `event_id=eq.${id}` }, (payload) => {
+                // Granular state update for DELETE to prevent reappearing items during latency
+                setFiles(prev => prev.filter(f => f.id !== payload.old.id));
+            })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'folders', filter: `event_id=eq.${id}` }, () => loadContent())
             .subscribe();
         return () => { supabase.removeChannel(channel); };
@@ -754,10 +759,11 @@ export default function EventView() {
                                 {(isAdmin || isOwner || (user && event && String(user.id) === String(event.owner_id))) && (
                                     <button
                                         onClick={() => setShowDeleteConfirm(true)}
-                                        className="h-9 w-9 shrink-0 flex items-center justify-center text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl transition-all shadow-xl border border-rose-500/20 group scale-110"
+                                        className="h-10 px-5 shrink-0 flex items-center justify-center gap-2 text-white bg-rose-600 hover:bg-rose-700 rounded-2xl transition-all shadow-xl border border-rose-500/20 group active:scale-95"
                                         title="Delete Selection"
                                     >
-                                        <Trash2 className="h-4.5 w-4.5 group-hover:scale-110 transition-transform" />
+                                        <Trash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Delete Selected</span>
                                     </button>
                                 )}
 
@@ -849,7 +855,7 @@ export default function EventView() {
                                             </button>
                                             <button onClick={e => { e.stopPropagation(); if (window.confirm('Delete this folder and all contents?')) handleDeleteFolder(f.id); }} className="p-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl backdrop-blur-xl border border-rose-500/20 transition-all active:scale-95 shadow-2xl flex items-center gap-2">
                                                 <Trash2 className="h-5 w-5" />
-                                                <span className="text-[9px] font-black uppercase tracking-tight">Purge</span>
+                                                <span className="text-[9px] font-black uppercase tracking-tight">Delete</span>
                                             </button>
                                         </div>
                                     )}
