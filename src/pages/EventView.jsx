@@ -125,9 +125,11 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                             preload="metadata"
                             muted
                             playsInline
+                            onMouseOver={e => e.currentTarget.play()}
+                            onMouseOut={e => { e.currentTarget.pause(); e.currentTarget.currentTime = 0.5; }}
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
-                            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full border border-white/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
+                            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full border border-white/20 flex items-center justify-center backdrop-blur-sm group-hover:opacity-0 transition-opacity">
                                 <PlayCircle className="h-6 w-6 md:h-8 md:w-8 text-white/80" />
                             </div>
                         </div>
@@ -895,10 +897,13 @@ export default function EventView() {
                                         autoPlay
                                         muted
                                         preload="auto"
-                                        className="max-w-full max-h-[90vh] bg-black shadow-2xl"
+                                        className="w-full h-full max-h-[90vh] bg-black shadow-2xl rounded-2xl md:rounded-[2rem]"
                                         playsInline
-                                        src={previewFile.file_url}
                                     >
+                                        <source src={previewFile.file_url} type="video/mp4" />
+                                        <source src={previewFile.file_url} type="video/quicktime" />
+                                        <source src={previewFile.file_url} type="video/webm" />
+                                        <source src={previewFile.file_url} />
                                         Your browser does not support high-fidelity video playback.
                                     </video>
                                 </div>

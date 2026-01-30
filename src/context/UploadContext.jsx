@@ -27,6 +27,7 @@ export function UploadProvider({ children }) {
                 const { error: uploadError } = await supabase.storage.from('media').upload(filePath, file, {
                     cacheControl: '3600',
                     upsert: false,
+                    contentType: file.type || 'application/octet-stream',
                     onUploadProgress: (progressEvent) => {
                         const percent = Math.floor((progressEvent.loaded / progressEvent.total) * 100);
                         setUploads(prev => prev.map(u =>
