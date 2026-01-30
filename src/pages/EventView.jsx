@@ -252,87 +252,6 @@ export default function EventView() {
         }
     }, [files, folders, selectedFiles, selectedFolders]);
 
-    useEffect(() => {
-        if (location.state?.code) setJoinCode(location.state.code);
-
-        // Immediate Social Probe to block redundant 404 logs
-        const probeSocial = async () => {
-            if (sessionStorage.getItem('social_provisioned') === 'false') return;
-            try {
-                const { error } = await supabase.from('media_likes').select('id').limit(1);
-                if (error && (error.status === 404 || error.code === '42P01' || error.message?.includes('does not exist'))) {
-                    setSocialProvisioned(false);
-                    sessionStorage.setItem('social_provisioned', 'false');
-                }
-            } catch (e) {
-                setSocialProvisioned(false);
-                try {
-                    window.sessionStorage?.setItem('social_provisioned', 'false');
-                } catch (se) { }
-            }
-        };
-
-        probeSocial();
-        loadEvent();
-    }, [id, user]);
-
-    useEffect(() => {
-        if (event && canView) loadContent();
-    }, [currentFolderId, event, canView]);
-
-    // REAL-TIME ENGINE: Synchronizes vault state across all clients
-    useEffect(() => {
-        if (!event || !canView) return;
-
-        const channel = supabase.channel(`vault-sync-${id}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'media_files',
-                filter: `event_id=eq.${id}`
-            }, (payload) => {
-                // Low-latency sync for high-bandwidth vaults
-                loadContent();
-            })
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'folders',
-                filter: `event_id=eq.${id}`
-            }, (payload) => {
-                loadContent();
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [id, event, canView, loadContent]);
-
-    useEffect(() => {
-        const handleKeys = (e) => {
-            if (e.key === 'Escape') {
-                if (previewFile) setPreviewFile(null);
-                else if (isSelecting) { setSelectedFiles(new Set()); setSelectedFolders(new Set()); }
-            }
-            if (e.key === 'ArrowLeft') {
-                if (previewFile) handleNav('prev');
-            }
-            if (e.key === 'ArrowRight') {
-                if (previewFile) handleNav('next');
-            }
-            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-                e.preventDefault();
-                handleSelectAll();
-            }
-            if (e.key === 'Delete' && isSelecting && isOwner) {
-                setShowDeleteConfirm(true);
-            }
-        };
-        window.addEventListener('keydown', handleKeys);
-        return () => window.removeEventListener('keydown', handleKeys);
-    }, [previewFile, isSelecting, handleSelectAll, isOwner, files]);
-
     const loadEvent = async () => {
         try {
             setLoading(true);
@@ -345,10 +264,8 @@ export default function EventView() {
             }
             if (data) {
                 setEvent(data);
-                // Pre-fill join code if not already set
                 if (!joinCode) setJoinCode(data.event_code);
 
-                // Check if user is already a member
                 if (user) {
                     const { data: member } = await supabase
                         .from('event_members')
@@ -361,7 +278,6 @@ export default function EventView() {
                         setIsMember(true);
                         setUserRole(member.role);
                     } else if (data.is_public) {
-                        // AUTO-JOIN PUBLIC EVENT
                         await supabase.from('event_members').insert({
                             event_id: id,
                             user_id: user.id,
@@ -377,41 +293,6 @@ export default function EventView() {
             setNetworkError(true);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleDeleteFile = async (fileId, storagePath) => {
-        if (!confirm('Permanently remove this asset from the infrastructure?')) return;
-        try {
-            // Priority 1: Storage removal (if fails, we still try to remove from DB to fix corrupted entries)
-            if (storagePath) {
-                try {
-                    await supabase.storage.from('media').remove([storagePath]);
-                } catch (se) {
-                    console.warn("Storage removal failed, likely path mismatch or RLS issue. Proceeding with database cleanup.");
-                }
-            }
-
-            // Priority 2: Database removal
-            const { error } = await supabase.from('media_files').delete().eq('id', fileId);
-            if (error) throw error;
-
-            // Priority 3: UI update
-            setFiles(prev => prev.filter(f => f.id !== fileId));
-        } catch (e) {
-            console.error("Critical Deletion Error:", e);
-            alert("Administrative deletion failed. Please use Group Purge for hard removal.");
-        }
-    };
-
-    const handleDeleteFolder = async (folderId) => {
-        if (!confirm('Are you sure you want to delete this folder and all its contents?')) return;
-        try {
-            const { error } = await supabase.from('folders').delete().eq('id', folderId);
-            if (error) throw error;
-            setFolders(prev => prev.filter(f => f.id !== folderId));
-        } catch (e) {
-            alert("Delete failed");
         }
     };
 
@@ -436,7 +317,6 @@ export default function EventView() {
             setFolders(foldersRes.data || []);
             setFiles(filesRes.data || []);
 
-            // Robust Like Loading (Proactive Feature Detection)
             if (user && socialProvisioned) {
                 try {
                     const { data: likes, error } = await supabase
@@ -445,21 +325,15 @@ export default function EventView() {
                         .eq('user_id', user.id);
 
                     if (error) {
-                        // 404 Table Not Found or 42P01 "relation does not exist"
                         if (error.status === 404 || error.code === '42P01' || error.message?.includes('does not exist')) {
-                            console.warn("Social features (likes) not provisioned. Silent fail enabled.");
                             setSocialProvisioned(false);
-                            sessionStorage.setItem('social_provisioned', 'false');
-                        } else {
-                            // Don't throw for non-critical social errors
-                            console.warn("Like fetch issue:", error.message);
+                            try { window.sessionStorage?.setItem('social_provisioned', 'false'); } catch (e) { }
                         }
                     } else if (likes) {
                         setLikedFiles(new Set(likes.map(l => l.file_id)));
                     }
                 } catch (e) {
                     setSocialProvisioned(false);
-                    sessionStorage.setItem('social_provisioned', 'false');
                 }
             }
 
@@ -472,87 +346,30 @@ export default function EventView() {
         } catch (err) {
             console.error("Content fetch failed", err);
         }
-    }, [id, currentFolderId, user]);
+    }, [id, currentFolderId, user, socialProvisioned]);
 
-    const handleJoin = async (e) => {
-        e.preventDefault();
-        setJoining(true);
+    const handleDeleteFile = async (fileId, storagePath) => {
+        if (!confirm('Permanently remove this asset?')) return;
         try {
-            // Check if passkey matches the event
-            if (joinPasskey.trim() === event.passkey) {
-                setHasGuestAccess(true);
-                sessionStorage.setItem(`vault_access_${id}`, 'true');
-
-                // If logged in, permanently add to dashboard
-                if (user && !isMember) {
-                    await supabase.from('event_members').insert({
-                        event_id: id,
-                        user_id: user.id,
-                        role: 'viewer'
-                    });
-                    setIsMember(true);
-                    setUserRole('viewer');
-                }
-            } else {
-                throw new Error("Invalid Vault Passkey");
+            if (storagePath) {
+                try { await supabase.storage.from('media').remove([storagePath]); } catch (se) { }
             }
-        } catch (error) {
-            alert(error.message);
-        } finally {
-            setJoining(false);
-        }
-    };
-
-    const handleFileUpload = async (e) => {
-        const fileList = Array.from(e.target.files);
-        if (!fileList.length || !user) return;
-        uploadFiles(fileList, id, currentFolderId, user.id);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-
-    const toggleLike = async (fileId) => {
-        if (!user) return;
-        if (!socialProvisioned) {
-            alert("Social features are not enabled. Run 'FIX_MEDIA_LIKES_RELATIONS.sql' in your Supabase Editor to activate.");
-            return;
-        }
-
-        const isLiked = likedFiles.has(fileId);
-        const newLikes = new Set(likedFiles);
-
-        // Optimistic UI Update
-        if (isLiked) newLikes.delete(fileId);
-        else newLikes.add(fileId);
-        setLikedFiles(newLikes);
-
-        // Optimistic Count Update in files list
-        setFiles(currentFiles => currentFiles.map(f => {
-            if (f.id === fileId) {
-                const currentCount = f.like_count || 0;
-                return { ...f, like_count: isLiked ? Math.max(0, currentCount - 1) : currentCount + 1 };
-            }
-            return f;
-        }));
-
-        // Optimistic Count Update in preview file if open
-        if (previewFile?.id === fileId) {
-            setPreviewFile(prev => ({
-                ...prev,
-                like_count: isLiked ? Math.max(0, (prev.like_count || 0) - 1) : (prev.like_count || 0) + 1
-            }));
-        }
-
-        try {
-            if (isLiked) {
-                await supabase.from('media_likes').delete().eq('file_id', fileId).eq('user_id', user.id);
-            } else {
-                await supabase.from('media_likes').insert({ file_id: fileId, user_id: user.id });
-            }
+            const { error } = await supabase.from('media_files').delete().eq('id', fileId);
+            if (error) throw error;
+            setFiles(prev => prev.filter(f => f.id !== fileId));
         } catch (e) {
-            console.error("Like operation failed", e);
-            // Rollback on failure
-            setSocialProvisioned(false);
-            loadContent(); // Refresh to restore correct state
+            alert("Delete failed");
+        }
+    };
+
+    const handleDeleteFolder = async (folderId) => {
+        if (!confirm('Delete this folder and all contents?')) return;
+        try {
+            const { error } = await supabase.from('folders').delete().eq('id', folderId);
+            if (error) throw error;
+            setFolders(prev => prev.filter(f => f.id !== folderId));
+        } catch (e) {
+            alert("Delete failed");
         }
     };
 
@@ -575,15 +392,71 @@ export default function EventView() {
         }
     };
 
+    const handleNav = useCallback((direction) => {
+        const idx = files.findIndex(f => f.id === previewFile?.id);
+        if (idx === -1) return;
+        const next = direction === 'next' ? (idx + 1) % files.length : (idx - 1 + files.length) % files.length;
+        setPreviewFile(files[next]);
+    }, [files, previewFile]);
+
+    const handleJoin = async (e) => {
+        e.preventDefault();
+        setJoining(true);
+        try {
+            if (joinPasskey.trim() === event?.passkey) {
+                setHasGuestAccess(true);
+                try { window.sessionStorage?.setItem(`vault_access_${id}`, 'true'); } catch (e) { }
+                if (user && !isMember) {
+                    await supabase.from('event_members').insert({ event_id: id, user_id: user.id, role: 'viewer' });
+                    setIsMember(true);
+                    setUserRole('viewer');
+                }
+            } else {
+                throw new Error("Invalid Vault Passkey");
+            }
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            setJoining(false);
+        }
+    };
+
+    const handleFileUpload = async (e) => {
+        const fileList = Array.from(e.target.files);
+        if (!fileList.length || !user) return;
+        uploadFiles(fileList, id, currentFolderId, user.id);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const toggleLike = async (fileId) => {
+        if (!user || !socialProvisioned) return;
+        const isLiked = likedFiles.has(fileId);
+        const newLikes = new Set(likedFiles);
+        if (isLiked) newLikes.delete(fileId); else newLikes.add(fileId);
+        setLikedFiles(newLikes);
+        setFiles(currentFiles => currentFiles.map(f => {
+            if (f.id === fileId) {
+                const currentCount = f.like_count || 0;
+                return { ...f, like_count: isLiked ? Math.max(0, currentCount - 1) : currentCount + 1 };
+            }
+            return f;
+        }));
+        if (previewFile?.id === fileId) {
+            setPreviewFile(prev => ({ ...prev, like_count: isLiked ? Math.max(0, (prev.like_count || 0) - 1) : (prev.like_count || 0) + 1 }));
+        }
+        try {
+            if (isLiked) await supabase.from('media_likes').delete().eq('file_id', fileId).eq('user_id', user.id);
+            else await supabase.from('media_likes').insert({ file_id: fileId, user_id: user.id });
+        } catch (e) {
+            loadContent();
+        }
+    };
+
     const downloadSelection = async () => {
         if (selectedFiles.size === 0 && selectedFolders.size === 0) return;
-
         setOperation({ type: 'Preparing', progress: 10, count: selectedFiles.size + selectedFolders.size });
-
         try {
             const zip = new JSZip();
-
-            // Files in current view
             const filesToDownload = files.filter(f => selectedFiles.has(f.id));
             for (let i = 0; i < filesToDownload.length; i++) {
                 const f = filesToDownload[i];
@@ -592,13 +465,10 @@ export default function EventView() {
                 zip.file(f.file_name, blob);
                 setOperation(prev => ({ ...prev, progress: 10 + Math.floor((i / filesToDownload.length) * 40) }));
             }
-
-            // Folders
             const foldersToDownload = folders.filter(f => selectedFolders.has(f.id));
             for (let i = 0; i < foldersToDownload.length; i++) {
                 const folder = foldersToDownload[i];
                 const folderZip = zip.folder(folder.name);
-
                 const { data: folderFiles } = await supabase.from('media_files').select('*').eq('folder_id', folder.id);
                 if (folderFiles) {
                     for (const f of folderFiles) {
@@ -608,24 +478,62 @@ export default function EventView() {
                     }
                 }
             }
-
             setOperation({ type: 'Archiving', progress: 80, count: 1 });
             const content = await zip.generateAsync({ type: "blob" });
             saveAs(content, `memora-export-${Date.now()}.zip`);
             setOperation(null);
         } catch (e) {
-            console.error("Download failed", e);
-            alert('Package generation failed');
             setOperation(null);
         }
     };
 
-    const handleNav = (direction) => {
-        const idx = files.findIndex(f => f.id === previewFile?.id);
-        if (idx === -1) return;
-        const next = direction === 'next' ? (idx + 1) % files.length : (idx - 1 + files.length) % files.length;
-        setPreviewFile(files[next]);
-    };
+    useEffect(() => {
+        if (location.state?.code) setJoinCode(location.state.code);
+        const probeSocial = async () => {
+            try {
+                if (window.sessionStorage?.getItem('social_provisioned') === 'false') return;
+                const { error } = await supabase.from('media_likes').select('id').limit(1);
+                if (error && (error.status === 404 || error.code === '42P01')) {
+                    setSocialProvisioned(false);
+                    try { window.sessionStorage?.setItem('social_provisioned', 'false'); } catch (e) { }
+                }
+            } catch (e) { }
+        };
+        probeSocial();
+        loadEvent();
+    }, [id, user]);
+
+    useEffect(() => {
+        if (event && canView) loadContent();
+    }, [currentFolderId, event, canView, loadContent]);
+
+    useEffect(() => {
+        if (!event || !canView) return;
+        const channel = supabase.channel(`vault-sync-${id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'media_files', filter: `event_id=eq.${id}` }, () => loadContent())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'folders', filter: `event_id=eq.${id}` }, () => loadContent())
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [id, event, canView, loadContent]);
+
+    useEffect(() => {
+        const handleKeys = (e) => {
+            if (e.key === 'Escape') {
+                if (previewFile) setPreviewFile(null);
+                else if (isSelecting) { setSelectedFiles(new Set()); setSelectedFolders(new Set()); }
+            }
+            if (e.key === 'ArrowLeft') if (previewFile) handleNav('prev');
+            if (e.key === 'ArrowRight') if (previewFile) handleNav('next');
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                e.preventDefault();
+                handleSelectAll();
+            }
+            if (e.key === 'Delete' && isSelecting && isAdmin) setShowDeleteConfirm(true);
+        };
+        window.addEventListener('keydown', handleKeys);
+        return () => window.removeEventListener('keydown', handleKeys);
+    }, [previewFile, isSelecting, handleSelectAll, isAdmin, files, handleNav]);
+
 
     if (loading) return (
         <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center p-6 space-y-4">
