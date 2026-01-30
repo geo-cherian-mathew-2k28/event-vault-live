@@ -6,30 +6,15 @@ const AuthContext = createContext({});
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+// Move fetch interceptor outside to prevent redundant overrides in React Strict Mode
+let isFetchIntercepted = false;
+const setupFetchInterceptor = (projectRef) => {
+    if (isFetchIntercepted) return;
+    isFetchIntercepted = true;
 
-    useEffect(() => {
-        // Check active sessions and sets the user
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            setLoading(false);
-        });
-
-        // Listen for changes on auth state (logged in, signed out, etc.)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-                setUser(null);
-            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                setUser(session?.user ?? null);
-            }
-            setLoading(false);
-        });
-
-        // Intercept 400 errors for "Refresh Token Not Found" and force signout
-        const originalFetch = window.fetch;
-        window.fetch = async (...args) => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+        try {
             const response = await originalFetch(...args);
             // Check if it's a Supabase request that failed with specific auth errors
             if (response.status === 400 || response.status === 401) {
@@ -41,13 +26,55 @@ export const AuthProvider = ({ children }) => {
                         errorData?.message?.includes('Refresh Token Not Found')) {
                         console.warn("Auth session conflict detected. Triggering recovery...");
                         await supabase.auth.signOut();
-                        setUser(null);
-                        localStorage.removeItem('sb-bxuzhfcnzuonnwgmgrnv-auth-token');
+                        // Optional: clear specific project token
+                        if (projectRef) {
+                            localStorage.removeItem(`sb-${projectRef}-auth-token`);
+                        }
+                        window.location.reload(); // Force a fresh state
                     }
                 } catch (e) { /* ignore JSON parse errors */ }
             }
             return response;
+        } catch (error) {
+            // Re-throw AbortError and others so the caller can handle them
+            throw error;
+        }
+    };
+};
+
+export const AuthProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // Extract project ref for reliable localStorage cleanup
+        const projectRef = supabase.supabaseUrl?.split('.')[0]?.split('//')[1];
+        setupFetchInterceptor(projectRef);
+
+        // Check active sessions and sets the user
+        const initAuth = async () => {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) throw error;
+                setUser(session?.user ?? null);
+            } catch (err) {
+                console.error("Auth initialization error:", err);
+                setUser(null);
+            } finally {
+                setLoading(false);
+            }
         };
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+                setUser(null);
+            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                setUser(session?.user ?? null);
+            }
+            setLoading(false);
+        });
+
+        initAuth();
 
         return () => subscription.unsubscribe();
     }, []);
