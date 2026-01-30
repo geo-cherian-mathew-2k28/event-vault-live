@@ -317,23 +317,19 @@ export default function EventView() {
             setFolders(foldersRes.data || []);
             setFiles(filesRes.data || []);
 
-            if (user && socialProvisioned) {
+            if (socialProvisioned) {
                 try {
-                    const { data: likes, error } = await supabase
-                        .from('media_likes')
-                        .select('file_id')
-                        .eq('user_id', user.id);
-
-                    if (error) {
-                        if (error.status === 404 || error.code === '42P01' || error.message?.includes('does not exist')) {
-                            setSocialProvisioned(false);
-                            try { window.sessionStorage?.setItem('social_provisioned', 'false'); } catch (e) { }
-                        }
-                    } else if (likes) {
-                        setLikedFiles(new Set(likes.map(l => l.file_id)));
+                    // Optimized social resolution: Works for both guests and authenticated users
+                    const currentId = user?.id || localStorage.getItem('guest_id');
+                    if (currentId) {
+                        const { data: likes } = await supabase
+                            .from('media_likes')
+                            .select('file_id')
+                            .eq('user_id', currentId);
+                        if (likes) setLikedFiles(new Set(likes.map(l => l.file_id)));
                     }
                 } catch (e) {
-                    setSocialProvisioned(false);
+                    console.warn("Social context resolution failed.");
                 }
             }
 
@@ -349,46 +345,70 @@ export default function EventView() {
     }, [id, currentFolderId, user, socialProvisioned]);
 
     const handleDeleteFile = async (fileId, storagePath) => {
-        if (!confirm('Permanently remove this asset?')) return;
+        // Optimistic UI: Hide immediately
+        const originalFiles = [...files];
+        setFiles(prev => prev.filter(f => f.id !== fileId));
+
         try {
             if (storagePath) {
                 try { await supabase.storage.from('media').remove([storagePath]); } catch (se) { }
             }
             const { error } = await supabase.from('media_files').delete().eq('id', fileId);
             if (error) throw error;
-            setFiles(prev => prev.filter(f => f.id !== fileId));
         } catch (e) {
-            alert("Delete failed");
+            console.error("Delete failed:", e);
+            setFiles(originalFiles); // Rollback on error
+            alert("Administrative protocol failure. Item could not be purged.");
         }
     };
 
     const handleDeleteFolder = async (folderId) => {
-        if (!confirm('Delete this folder and all contents?')) return;
+        const originalFolders = [...folders];
+        setFolders(prev => prev.filter(f => f.id !== folderId));
+
         try {
             const { error } = await supabase.from('folders').delete().eq('id', folderId);
             if (error) throw error;
-            setFolders(prev => prev.filter(f => f.id !== folderId));
         } catch (e) {
+            console.error("Delete failed:", e);
+            setFolders(originalFolders); // Rollback
             alert("Delete failed");
         }
     };
 
     const handleBulkDelete = async () => {
+        const originalFiles = [...files];
+        const originalFolders = [...folders];
+
+        // Optimistic UI update
+        setFiles(prev => prev.filter(f => !selectedFiles.has(f.id)));
+        setFolders(prev => prev.filter(f => !selectedFolders.has(f.id)));
+        const fileIds = Array.from(selectedFiles);
+        const folderIds = Array.from(selectedFolders);
+
+        // Reset selection immediately
+        setSelectedFiles(new Set());
+        setSelectedFolders(new Set());
+
         try {
-            if (selectedFiles.size) {
-                const itemsToDelete = files.filter(f => selectedFiles.has(f.id));
-                const paths = itemsToDelete.map(f => f.storage_path);
-                if (paths.length > 0) await supabase.storage.from('media').remove(paths);
-                await supabase.from('media_files').delete().in('id', Array.from(selectedFiles));
+            if (fileIds.length) {
+                const itemsToDelete = originalFiles.filter(f => selectedFiles.has(f.id));
+                const paths = itemsToDelete.map(f => f.storage_path).filter(Boolean);
+                if (paths.length > 0) {
+                    try { await supabase.storage.from('media').remove(paths); } catch (se) { }
+                }
+                const { error } = await supabase.from('media_files').delete().in('id', fileIds);
+                if (error) throw error;
             }
-            if (selectedFolders.size) {
-                await supabase.from('folders').delete().in('id', Array.from(selectedFolders));
+            if (folderIds.length) {
+                const { error } = await supabase.from('folders').delete().in('id', folderIds);
+                if (error) throw error;
             }
-            setSelectedFiles(new Set());
-            setSelectedFolders(new Set());
-            await loadContent();
         } catch (e) {
-            console.error("Delete failed", e);
+            console.error("Bulk delete failed:", e);
+            setFiles(originalFiles);
+            setFolders(originalFolders);
+            alert("Bulk purge failed. System restored to previous state.");
         }
     };
 
@@ -429,11 +449,23 @@ export default function EventView() {
     };
 
     const toggleLike = async (fileId) => {
-        if (!user || !socialProvisioned) return;
+        if (!socialProvisioned) return;
+
+        // Handle Guest Identity if not logged in
+        let currentUserId = user?.id;
+        if (!currentUserId) {
+            currentUserId = localStorage.getItem('guest_id');
+            if (!currentUserId) {
+                currentUserId = `guest_${Math.random().toString(36).substring(2)}${Date.now()}`;
+                localStorage.setItem('guest_id', currentUserId);
+            }
+        }
+
         const isLiked = likedFiles.has(fileId);
         const newLikes = new Set(likedFiles);
         if (isLiked) newLikes.delete(fileId); else newLikes.add(fileId);
         setLikedFiles(newLikes);
+
         setFiles(currentFiles => currentFiles.map(f => {
             if (f.id === fileId) {
                 const currentCount = f.like_count || 0;
@@ -441,13 +473,19 @@ export default function EventView() {
             }
             return f;
         }));
+
         if (previewFile?.id === fileId) {
-            setPreviewFile(prev => ({ ...prev, like_count: isLiked ? Math.max(0, (prev.like_count || 0) - 1) : (prev.like_count || 0) + 1 }));
+            setPreviewFile(prev => ({
+                ...prev,
+                like_count: isLiked ? Math.max(0, (prev.like_count || 0) - 1) : (prev.like_count || 0) + 1
+            }));
         }
+
         try {
-            if (isLiked) await supabase.from('media_likes').delete().eq('file_id', fileId).eq('user_id', user.id);
-            else await supabase.from('media_likes').insert({ file_id: fileId, user_id: user.id });
+            if (isLiked) await supabase.from('media_likes').delete().eq('file_id', fileId).eq('user_id', currentUserId);
+            else await supabase.from('media_likes').insert({ file_id: fileId, user_id: currentUserId });
         } catch (e) {
+            // Rollback on absolute failure
             loadContent();
         }
     };
@@ -491,13 +529,26 @@ export default function EventView() {
         if (location.state?.code) setJoinCode(location.state.code);
         const probeSocial = async () => {
             try {
-                if (window.sessionStorage?.getItem('social_provisioned') === 'false') return;
+                // Persistent check: If we previously determined social is missing, don't ping again
+                if (window.sessionStorage?.getItem('social_provisioned') === 'false') {
+                    setSocialProvisioned(false);
+                    return;
+                }
+
+                // Active probe: Check if the table is accessible
                 const { error } = await supabase.from('media_likes').select('id').limit(1);
+
+                // Only disable if the table literally doesn't exist (404/42P01)
                 if (error && (error.status === 404 || error.code === '42P01')) {
                     setSocialProvisioned(false);
                     try { window.sessionStorage?.setItem('social_provisioned', 'false'); } catch (e) { }
+                } else {
+                    setSocialProvisioned(true);
+                    window.sessionStorage?.setItem('social_provisioned', 'true');
                 }
-            } catch (e) { }
+            } catch (e) {
+                setSocialProvisioned(false);
+            }
         };
         probeSocial();
         loadEvent();
