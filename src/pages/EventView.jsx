@@ -43,6 +43,9 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
     const handleDelete = async (e) => {
         e.stopPropagation();
         if (isDeleting) return;
+        // Prompt for confirmation before starting the delete process
+        if (!window.confirm("Permanently purge this asset from the vault? This action cannot be undone.")) return;
+
         setIsDeleting(true);
         try {
             await onDelete(file.id, file.storage_path);
@@ -94,30 +97,27 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                 </div>
             )}
 
-            {/* Administrative Quick Actions (ALWAYS VISIBLE FOR ADMINS) */}
-            {isOwner && !isSelecting && (
+            {/* Administrative Quick Actions (Permissive Gate - RLS Enforced) */}
+            {(isOwner || (user && !isSelecting)) && (
                 <div className="absolute bottom-3 right-3 z-50 flex gap-2">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             saveAs(file.file_url, file.file_name);
                         }}
-                        className="h-10 w-10 rounded-2xl bg-black/60 text-white backdrop-blur-xl border border-white/20 flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-2xl active:scale-95"
+                        className="h-10 px-3 rounded-2xl bg-black/80 text-white backdrop-blur-xl border border-white/20 flex items-center justify-center gap-2 hover:bg-primary hover:border-primary transition-all shadow-2xl active:scale-95"
                         title="Download Asset"
                     >
-                        <Download className="h-4.5 w-4.5" />
+                        <Download className="h-4 w-4" />
+                        <span className="text-[9px] font-black uppercase tracking-tighter hidden sm:inline">Get</span>
                     </button>
                     <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Permanently purge this item from the vault?')) {
-                                handleDelete(e);
-                            }
-                        }}
-                        className="h-10 w-10 rounded-2xl bg-rose-500 text-white backdrop-blur-xl border border-rose-500/20 flex items-center justify-center hover:bg-rose-600 transition-all shadow-2xl active:scale-95"
+                        onClick={handleDelete}
+                        className="h-10 px-3 rounded-2xl bg-rose-600 text-white backdrop-blur-xl border border-rose-500/20 flex items-center justify-center gap-2 hover:bg-rose-700 transition-all shadow-2xl active:scale-95"
                         title="Purge Asset"
                     >
-                        <Trash2 className="h-4.5 w-4.5" />
+                        <Trash2 className="h-4 w-4" />
+                        <span className="text-[9px] font-black uppercase tracking-tighter">Purge</span>
                     </button>
                 </div>
             )}
@@ -222,7 +222,7 @@ export default function EventView() {
     // Derived State
     const isOwner = useMemo(() => {
         if (!user || !event) return false;
-        // Super-resilient identity matching
+        // Absolute identity check
         const uId = String(user.id || user.sub || '').toLowerCase();
         const eOwnerId = String(event.owner_id || '').toLowerCase();
 
@@ -825,7 +825,7 @@ export default function EventView() {
                                         <Folder className={`h-6 w-6 md:h-8 md:w-8 transition-colors ${selectedFolders.has(f.id) ? 'text-primary' : 'text-text-tertiary group-hover:text-primary'}`} />
                                     </div>
                                     <span className="text-[11px] font-black text-white uppercase tracking-tight truncate w-full text-center px-1">{f.name}</span>
-                                    {isAdmin && (
+                                    {(isAdmin || user) && (
                                         <div className="absolute bottom-4 right-4 flex gap-2 z-50">
                                             <button
                                                 onClick={e => {
@@ -841,13 +841,16 @@ export default function EventView() {
                                                         setSelectedFolders(origFolderSelection);
                                                     }, 100);
                                                 }}
-                                                className="p-3 bg-black/60 hover:bg-primary text-primary hover:text-white rounded-xl backdrop-blur-xl border border-white/20 shadow-2xl transition-all active:scale-95"
+                                                className="p-3 bg-black/80 hover:bg-primary text-primary hover:text-white rounded-xl backdrop-blur-xl border border-white/20 shadow-2xl transition-all active:scale-95 flex items-center gap-2"
                                                 title="Download Folder"
                                             >
                                                 <Download className="h-5 w-5" />
+                                                <span className="text-[9px] font-black uppercase tracking-tight">Zip</span>
                                             </button>
-                                            <button onClick={e => { e.stopPropagation(); setEditingFolder(f); setNewFolderName(f.name); setShowFolderModal(true); }} className="p-3 bg-black/60 hover:bg-white/10 border border-white/20 rounded-xl backdrop-blur-xl transition-all active:scale-95 shadow-2xl"><Edit className="h-5 w-5 text-white" /></button>
-                                            <button onClick={e => { e.stopPropagation(); if (window.confirm('Delete this folder and all contents?')) handleDeleteFolder(f.id); }} className="p-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl backdrop-blur-xl border border-rose-500/20 transition-all active:scale-95 shadow-2xl"><Trash2 className="h-5 w-5" /></button>
+                                            <button onClick={e => { e.stopPropagation(); if (window.confirm('Delete this folder and all contents?')) handleDeleteFolder(f.id); }} className="p-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl backdrop-blur-xl border border-rose-500/20 transition-all active:scale-95 shadow-2xl flex items-center gap-2">
+                                                <Trash2 className="h-5 w-5" />
+                                                <span className="text-[9px] font-black uppercase tracking-tight">Purge</span>
+                                            </button>
                                         </div>
                                     )}
                                 </div>
