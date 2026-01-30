@@ -120,12 +120,11 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                 ) : file.file_type === 'video' ? (
                     <div className="w-full h-full relative">
                         <video
-                            src={file.file_url + "#t=0.1"}
+                            src={file.file_url + "#t=0.5"}
                             className="w-full h-full object-cover"
                             preload="metadata"
                             muted
                             playsInline
-                            crossOrigin="anonymous"
                         />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
                             <div className="h-10 w-10 md:h-12 md:w-12 rounded-full border border-white/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
@@ -645,8 +644,8 @@ export default function EventView() {
         <div className="min-h-screen bg-bg-base flex flex-col font-sans selection:bg-primary/30 pt-16 md:pt-20">
 
             {/* STICKY TOOLBAR - Offset to clear Navbar perfectly */}
-            <div className="sticky top-16 md:top-20 z-[40] w-full">
-                <div className="absolute inset-0 bg-bg-base/80 backdrop-blur-xl border-b border-white/5 shadow-xl" />
+            <div className="sticky top-16 md:top-20 z-[60] w-full">
+                <div className="absolute inset-0 bg-bg-base border-b border-white/5 shadow-xl" />
 
                 <div className="max-w-7xl mx-auto px-4 md:px-8 h-12 md:h-16 flex items-center justify-between relative z-10">
                     <div className="flex items-center gap-3 overflow-hidden">
@@ -739,7 +738,7 @@ export default function EventView() {
                 </div>
             </div>
 
-            <div className="flex-1 px-4 md:px-8 pt-10 md:pt-16 pb-32">
+            <div className="flex-1 px-4 md:px-8 pt-28 md:pt-32 pb-40">
                 <div className="max-w-7xl mx-auto">
                     {/* Visual Folders Grid - Premium Density */}
                     {folders.length > 0 && (
@@ -887,18 +886,19 @@ export default function EventView() {
                             <ChevronRight className="h-6 w-6 md:h-12 md:w-12" />
                         </button>
 
-                        <div className="w-full h-full flex items-center justify-center animate-zoom-in relative z-50 pt-20 pb-10" onClick={e => e.stopPropagation()}>
-                            {previewFile.file_type === 'video' ? (
+                        <div className="w-full h-full flex items-center justify-center animate-zoom-in relative z-50 pt-24 pb-12" onClick={e => e.stopPropagation()}>
+                            {(previewFile.file_type === 'video' || (previewFile.file_url && previewFile.file_url.toLowerCase().match(/\.(mp4|webm|mov|ogg)$/))) ? (
                                 <div className="relative w-full h-full flex items-center justify-center max-w-[95vw] bg-black/40 rounded-[2rem] overflow-hidden">
                                     <video
                                         key={previewFile.id}
                                         controls
                                         autoPlay
+                                        muted
+                                        preload="auto"
                                         className="max-w-full max-h-[90vh] bg-black shadow-2xl"
                                         playsInline
-                                        crossOrigin="anonymous"
+                                        src={previewFile.file_url}
                                     >
-                                        <source src={previewFile.file_url} type="video/mp4" />
                                         Your browser does not support high-fidelity video playback.
                                     </video>
                                 </div>
