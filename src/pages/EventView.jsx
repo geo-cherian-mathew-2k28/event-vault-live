@@ -433,9 +433,16 @@ export default function EventView() {
             }
         } catch (e) {
             console.error("Bulk delete failed:", e);
+            // Rollback ghosting prevention
+            setDeletedIds(prev => {
+                const next = new Set(prev);
+                fileIds.forEach(id => next.delete(id));
+                folderIds.forEach(id => next.delete(id));
+                return next;
+            });
             setFiles(originalFiles);
             setFolders(originalFolders);
-            alert("Administrative failure. Selection could not be deleted.");
+            alert("Delete failed. You may not have administrative permissions for these assets on the database.");
         }
     };
 
