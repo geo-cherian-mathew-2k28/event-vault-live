@@ -142,22 +142,22 @@ export default function EditEvent() {
                     {/* General Sector */}
                     <div className="space-y-3">
                         <label className="text-[9px] font-black text-text-tertiary uppercase tracking-[0.3em] px-1">Identity Profile</label>
-                        <div className="bg-bg-surface/30 rounded-[2rem] border border-white/5 p-6 md:p-8 space-y-6 backdrop-blur-sm">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest block">Display Name</label>
+                        <div className="bg-bg-surface/30 rounded-[2.5rem] border border-white/5 p-6 md:p-10 space-y-8 backdrop-blur-sm shadow-2xl">
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-primary/60 uppercase tracking-widest block pl-1">Vault Designation</label>
                                 <input
                                     type="text"
-                                    className="w-full bg-white/5 border-b border-white/10 focus:border-primary px-0 py-3 text-lg font-black text-white outline-none transition-all placeholder:opacity-20"
+                                    className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-5 text-xl font-black text-white outline-none transition-all placeholder:opacity-20 focus:border-primary/50 focus:bg-white/[0.05] shadow-inner"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     required
                                     placeholder="Enter vault name..."
                                 />
                             </div>
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest block">Description</label>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-text-tertiary uppercase tracking-widest block pl-1">Operational Context</label>
                                 <textarea
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-medium text-text-secondary outline-none focus:border-primary/50 transition-all resize-none min-h-[100px]"
+                                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-sm font-medium text-text-secondary outline-none focus:border-primary/30 transition-all resize-none min-h-[120px] shadow-inner"
                                     value={formData.description}
                                     onChange={e => setFormData({ ...formData, description: e.target.value })}
                                     placeholder="Brief context for this vault..."
@@ -201,16 +201,16 @@ export default function EditEvent() {
                         <label className="text-[9px] font-black text-text-tertiary uppercase tracking-[0.3em] px-1">Critical Credentials</label>
                         <div className="bg-bg-surface/30 rounded-[2rem] border border-white/5 p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 backdrop-blur-sm">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest block">Event Code</label>
-                                <div className="h-12 flex items-center px-4 bg-white/[0.03] rounded-xl text-primary font-mono font-black text-lg border border-white/5 tracking-[0.2em]">
+                                <label className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest block pl-1">Protocol Identifier</label>
+                                <div className="h-14 flex items-center px-6 bg-white/[0.03] rounded-2xl text-primary font-mono font-black text-xl border border-white/5 tracking-[0.3em] shadow-inner">
                                     {formData.event_code}
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest block">Private Passkey</label>
+                                <label className="text-[10px] font-bold text-text-secondary/60 uppercase tracking-widest block pl-1">Security Passkey</label>
                                 <input
                                     type="text"
-                                    className="h-12 w-full bg-white/[0.03] border border-white/10 focus:border-primary/50 rounded-xl px-4 text-sm font-black text-white outline-none transition-all font-mono"
+                                    className="h-14 w-full bg-white/[0.03] border border-white/10 focus:border-primary/50 rounded-2xl px-6 text-sm font-black text-white outline-none transition-all font-mono shadow-inner text-center tracking-[0.2em]"
                                     value={formData.passkey}
                                     onChange={e => setFormData({ ...formData, passkey: e.target.value })}
                                     placeholder="NONE"
@@ -220,30 +220,30 @@ export default function EditEvent() {
                     </div>
 
                     {/* Actions */}
-                    <div className="pt-8 space-y-4">
+                    <div className="pt-12 space-y-4">
                         <button
                             type="submit"
                             disabled={saving}
-                            className="bg-primary hover:bg-primary/90 text-white w-full h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                            className="bg-primary hover:bg-primary/90 text-white w-full h-16 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-primary/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 border border-white/10"
                         >
-                            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-4 w-4" /> Save Changes</>}
+                            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-5 w-5" /> Save Configuration</>}
                         </button>
 
-                        <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
                             <button
                                 type="button"
                                 onClick={handleRevokeAll}
                                 disabled={revoking}
-                                className="flex-1 h-14 md:h-12 rounded-2xl bg-white/[0.03] border border-white/5 text-rose-500/60 hover:text-rose-500 hover:bg-rose-500/10 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                className="flex-1 h-14 rounded-2xl bg-white/[0.03] border border-white/5 text-rose-500/80 hover:text-rose-500 hover:bg-rose-500/10 text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
                             >
-                                <UserMinus className="h-4 w-4" /> Purge Sessions
+                                <UserMinus className="h-4 w-4" /> Purge Records
                             </button>
                             <button
                                 type="button"
                                 onClick={handleDelete}
-                                className="flex-1 h-14 md:h-12 rounded-2xl bg-white/[0.03] border border-white/5 text-text-tertiary hover:text-white hover:bg-rose-600 hover:border-rose-600 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                className="flex-1 h-14 rounded-2xl bg-white/[0.02] border border-white/5 text-text-tertiary hover:text-white hover:bg-rose-600/20 hover:border-rose-600/40 text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
                             >
-                                <Trash2 className="h-4 w-4" /> Delete Vault
+                                <Trash2 className="h-4 w-4" /> Decommission Vault
                             </button>
                         </div>
                     </div>

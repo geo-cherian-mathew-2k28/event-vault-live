@@ -9,9 +9,13 @@ export default function Home() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [mounted, setMounted] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
         setMounted(true);
+        const handleScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     const handleCodeSubmit = (e) => {
@@ -24,17 +28,35 @@ export default function Home() {
     return (
         <div className="min-h-screen bg-[#050505] text-white selection:bg-primary/30 font-sans antialiased overflow-hidden flex flex-col">
 
+            {/* GRAIN OVERLAY */}
+            <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[100] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+
             {/* TOP NAVIGATION BAR */}
-            <nav className="relative z-20 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto w-full">
-                <div className="flex items-center gap-2">
-                    <div className="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
-                        <Shield className="h-6 w-6 text-white" />
+            <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${scrolled ? 'py-4 bg-[#050505]/80 backdrop-blur-xl border-b border-white/5' : 'py-8'}`}>
+                <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+                    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate('/')}>
+                        <div className="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 group-hover:border-primary/50 transition-all group-hover:bg-primary/5">
+                            <Shield className="h-6 w-6 text-white group-hover:text-primary transition-colors" />
+                        </div>
+                        <span className="text-xl font-black tracking-tighter uppercase italic text-white">Memora</span>
                     </div>
-                    <span className="text-xl font-bold tracking-tight">Memora</span>
+
+                    <div className="hidden md:flex items-center gap-10">
+                        <NavLink to="/about">Architecture</NavLink>
+                        <NavLink to={user ? "/events" : "/login"}>Dashboard</NavLink>
+                        <a
+                            href="https://geo-cherian-mathew-2k28.github.io/geo-portfolio/"
+                            target="_blank"
+                            className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-primary transition-colors italic"
+                        >
+                            Portfolio
+                        </a>
+                    </div>
+
+                    <button className="md:hidden p-2 text-white/60 hover:text-white transition-colors">
+                        <Menu className="h-6 w-6" />
+                    </button>
                 </div>
-                <button className="p-2 text-white/60 hover:text-white transition-colors">
-                    <Menu className="h-6 w-6" />
-                </button>
             </nav>
 
             {/* MAIN HERO SECTION */}
@@ -88,12 +110,28 @@ export default function Home() {
 
             {/* FOOTER (MATCHING IMAGE) */}
             <footer className="relative z-10 py-12 border-t border-white/5">
-                <div className="max-w-7xl mx-auto px-6 text-center">
+                <div className="max-w-7xl mx-auto px-6 text-center flex flex-col items-center gap-6">
                     <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">
                         SECURE INFRASTRUCTURE • END-TO-END ACCESS CONTROL
                     </p>
+                    <a
+                        href="https://geo-cherian-mathew-2k28.github.io/geo-portfolio/"
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-white transition-all flex items-center gap-2 italic"
+                    >
+                        Architected by Geo Cherian Mathew <ArrowRight className="h-3 w-3" />
+                    </a>
                 </div>
             </footer>
         </div>
     );
 }
+
+const NavLink = ({ to, children }) => (
+    <Link
+        to={to}
+        className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-white transition-colors"
+    >
+        {children}
+    </Link>
+);

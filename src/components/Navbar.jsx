@@ -27,6 +27,9 @@ export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const [avatarUrl, setAvatarUrl] = useState(null);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const isLandingPage = location.pathname === '/' || location.pathname === '/about';
 
     useEffect(() => {

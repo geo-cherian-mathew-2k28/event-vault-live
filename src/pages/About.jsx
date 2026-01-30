@@ -1,16 +1,56 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Shield, Lock, Globe, HardDrive, Check, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Shield, Lock, Globe, HardDrive, Check, ArrowRight, Menu } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function About() {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     return (
         <div className="min-h-screen bg-[#050505] text-white selection:bg-primary/30 font-sans antialiased overflow-x-hidden">
 
+            {/* GRAIN OVERLAY */}
+            <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[100] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+
+            {/* TOP NAVIGATION BAR */}
+            <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${scrolled ? 'py-4 bg-[#050505]/80 backdrop-blur-xl border-b border-white/5' : 'py-8'}`}>
+                <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+                    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate('/')}>
+                        <div className="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 group-hover:border-primary/50 transition-all group-hover:bg-primary/5">
+                            <Shield className="h-6 w-6 text-white group-hover:text-primary transition-colors" />
+                        </div>
+                        <span className="text-xl font-black tracking-tighter uppercase italic text-white">Memora</span>
+                    </div>
+
+                    <div className="hidden md:flex items-center gap-10">
+                        <NavLink to="/">Portal</NavLink>
+                        <NavLink to={user ? "/events" : "/login"}>Dashboard</NavLink>
+                        <a
+                            href="https://geo-cherian-mathew-2k28.github.io/geo-portfolio/"
+                            target="_blank"
+                            className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-primary transition-colors italic"
+                        >
+                            Portfolio
+                        </a>
+                    </div>
+
+                    <button className="md:hidden p-2 text-white/60 hover:text-white transition-colors">
+                        <Menu className="h-6 w-6" />
+                    </button>
+                </div>
+            </nav>
+
             {/* ATMOSPHERIC BACKGROUND */}
             <div className="fixed inset-0 z-0">
-                <div className="absolute top-0 right-0 w-[60vw] h-[60vw] bg-white/5 blur-[150px] rounded-full -mr-20 -mt-20 opacity-30" />
-                <div className="absolute bottom-0 left-0 w-[40vw] h-[40vw] bg-white/5 blur-[150px] rounded-full -ml-20 -mb-20 opacity-20" />
+                <div className="absolute top-0 right-0 w-[60vw] h-[60vw] bg-white/5 blur-[150px] rounded-full -mr-20 -mt-20 opacity-40 shadow-[0_0_100px_rgba(255,255,255,0.05)]" />
+                <div className="absolute bottom-0 left-0 w-[40vw] h-[40vw] bg-white/5 blur-[150px] rounded-full -ml-20 -mb-20 opacity-30 shadow-[0_0_100px_rgba(255,255,255,0.02)]" />
             </div>
 
             <main className="relative z-10 pt-32 pb-32 px-6 max-w-4xl mx-auto">
@@ -91,4 +131,14 @@ function Activity({ className }) {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
     )
+}
+function NavLink({ to, children }) {
+    return (
+        <Link
+            to={to}
+            className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-white transition-colors"
+        >
+            {children}
+        </Link>
+    );
 }
