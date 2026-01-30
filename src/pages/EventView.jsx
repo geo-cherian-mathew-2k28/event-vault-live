@@ -419,7 +419,8 @@ export default function EventView() {
 
         try {
             if (fileIds.length) {
-                const itemsToDelete = originalFiles.filter(f => selectedFiles.has(f.id));
+                // BUG FIX: Use fileIds directly because selectedFiles is cleared optimistically
+                const itemsToDelete = originalFiles.filter(f => fileIds.includes(f.id));
                 const paths = itemsToDelete.map(f => f.storage_path).filter(Boolean);
                 if (paths.length > 0) {
                     try { await supabase.storage.from('media').remove(paths); } catch (se) { }
@@ -598,8 +599,14 @@ export default function EventView() {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'media_files', filter: `event_id=eq.${id}` }, () => loadContent())
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'media_files', filter: `event_id=eq.${id}` }, () => loadContent())
             .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'media_files', filter: `event_id=eq.${id}` }, (payload) => {
-                // Granular state update for DELETE to prevent reappearing items during latency
-                setFiles(prev => prev.filter(f => f.id !== payload.old.id));
+                // Defensive check: Supabase DELETE payloads might be partial
+                const deletedId = payload.old?.id || payload.old?.uuid;
+                if (deletedId) {
+                    setFiles(prev => prev.filter(f => f.id !== deletedId));
+                } else {
+                    // Fallback: Full refresh if payload is unrecognizable
+                    loadContent();
+                }
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'folders', filter: `event_id=eq.${id}` }, () => loadContent())
             .subscribe();
@@ -735,11 +742,13 @@ export default function EventView() {
                         </button>
 
                         <div className="hidden lg:flex items-center gap-3 border-l border-white/10 pl-4 ml-1">
-                            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-tighter truncate max-w-[120px]">{event?.name}</span>
-                            {isAdmin && (
-                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20">
-                                    <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                                    <span className="text-[8px] font-black text-primary uppercase tracking-widest">Moderator Mode</span>
+                            <span className="text-[10px] font-black text-white/40 uppercase tracking-tighter truncate max-w-[120px]">{event?.name}</span>
+                            {user && (
+                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-lg transition-all ${isAdmin ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-white/5 border-white/10 text-white/40'}`}>
+                                    <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${isAdmin ? 'bg-primary' : 'bg-white/20'}`} />
+                                    <span className="text-[8px] font-black uppercase tracking-widest">
+                                        {isAdmin ? 'Mod Authority active' : `Role: ${userRole || 'Guest'}`}
+                                    </span>
                                 </div>
                             )}
                         </div>
