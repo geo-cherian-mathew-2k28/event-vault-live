@@ -60,17 +60,18 @@ export default function Home() {
             </nav>
 
             {/* MAIN HERO SECTION */}
-            <main className="flex-1 relative z-10 flex flex-col items-center justify-center px-6 pb-20">
+            <main className="flex-1 relative z-10 flex flex-col items-center justify-center px-6 pt-32 pb-24 min-h-[90vh]">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl aspect-[2/1] bg-white/5 blur-[120px] rounded-full opacity-40 mix-blend-screen pointer-events-none" />
 
-                <div className={`max-w-4xl w-full text-center transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-                    <h1 className="text-[12vw] md:text-8xl font-black text-white mb-8 tracking-tighter">
-                        Memora
-                    </h1>
-
-                    <p className="text-lg md:text-xl text-white/40 max-w-2xl mx-auto mb-16 font-medium leading-relaxed">
-                        Capture. Collect. Cherish. The seamless way to gather photos from every guest.
-                    </p>
+                <div className={`max-w-5xl w-full text-center transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                    <div className="space-y-8 mb-20 px-4">
+                        <h1 className="text-5xl md:text-7xl lg:text-[10rem] font-black text-white tracking-tighter leading-[0.9] uppercase italic">
+                            Memora
+                        </h1>
+                        <p className="text-[10px] md:text-xs lg:text-sm text-white/30 max-w-sm md:max-w-lg mx-auto font-black uppercase tracking-[0.4em] leading-relaxed italic">
+                            Infrastructure for capturing, collecting, and archiving event media in real-time.
+                        </p>
+                    </div>
 
                     {/* CENTRAL INPUT BOX (MATCHING IMAGE) */}
                     <div className="max-w-xl mx-auto w-full mb-12">

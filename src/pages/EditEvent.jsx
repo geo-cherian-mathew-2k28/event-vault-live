@@ -229,19 +229,19 @@ export default function EditEvent() {
                             {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-5 w-5" /> Save Configuration</>}
                         </button>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
                             <button
                                 type="button"
                                 onClick={handleRevokeAll}
                                 disabled={revoking}
-                                className="h-14 rounded-2xl bg-white/[0.03] border border-white/5 text-rose-500/80 hover:text-white hover:bg-rose-500 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95 disabled:opacity-50"
+                                className="h-16 rounded-[1.5rem] bg-white/[0.03] border border-white/5 text-rose-500/80 hover:text-white hover:bg-rose-500 text-[10px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 shadow-inner active:scale-95 disabled:opacity-50"
                             >
                                 <UserMinus className="h-4 w-4" /> <span>Purge Records</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={handleDelete}
-                                className="h-14 rounded-2xl bg-white/[0.02] border border-white/10 text-text-tertiary hover:text-white hover:bg-rose-600 hover:border-rose-600 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95"
+                                className="h-16 rounded-[1.5rem] bg-white/[0.02] border border-white/10 text-white/40 hover:text-white hover:bg-rose-600/20 hover:border-rose-600/40 text-[10px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 active:scale-95"
                             >
                                 <Trash2 className="h-4 w-4" /> <span>Decommission</span>
                             </button>
