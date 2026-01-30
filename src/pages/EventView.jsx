@@ -385,6 +385,8 @@ export default function EventView() {
     };
 
     const handleDeleteFolder = async (folderId) => {
+        // Optimistic UI & Ghosting Prevention
+        setDeletedIds(prev => new Set([...prev, folderId]));
         const originalFolders = [...folders];
         setFolders(prev => prev.filter(f => f.id !== folderId));
 
@@ -393,8 +395,9 @@ export default function EventView() {
             if (error) throw error;
         } catch (e) {
             console.error("Delete failed:", e);
+            setDeletedIds(prev => { const next = new Set(prev); next.delete(folderId); return next; });
             setFolders(originalFolders); // Rollback
-            alert("Delete failed");
+            alert("Delete failed. You may not have permission to remove this folder.");
         }
     };
 
