@@ -94,19 +94,32 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                 </div>
             )}
 
-            {/* Single Delete Button (SECURE & ACCESSIBLE) */}
+            {/* Administrative Quick Actions (Persistent for Admins) */}
             {isOwner && !isSelecting && (
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm('Delete this item permanently?')) {
-                            handleDelete(e);
-                        }
-                    }}
-                    className="absolute bottom-3 right-3 z-30 h-9 w-9 rounded-xl bg-rose-500/20 text-rose-500 border border-rose-500/20 flex items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white shadow-xl"
-                >
-                    <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="absolute bottom-3 right-3 z-40 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            saveAs(file.file_url, file.file_name);
+                        }}
+                        className="h-10 w-10 rounded-2xl bg-white/10 text-white backdrop-blur-xl border border-white/20 flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-2xl"
+                        title="Download Asset"
+                    >
+                        <Download className="h-4 w-4" />
+                    </button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Permanently purge this item from the vault?')) {
+                                handleDelete(e);
+                            }
+                        }}
+                        className="h-10 w-10 rounded-2xl bg-rose-500/10 text-rose-500 backdrop-blur-xl border border-rose-500/20 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-2xl"
+                        title="Purge Asset"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </button>
+                </div>
             )}
 
             <div className="w-full h-full flex items-center justify-center relative bg-bg-base/40">
@@ -802,9 +815,33 @@ export default function EventView() {
                                     </div>
                                     <span className="text-[11px] font-black text-white uppercase tracking-tight truncate w-full text-center px-1">{f.name}</span>
                                     {isAdmin && (
-                                        <div className="absolute bottom-4 right-4 flex gap-2">
-                                            <button onClick={e => { e.stopPropagation(); setEditingFolder(f); setNewFolderName(f.name); setShowFolderModal(true); }} className="p-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 bg-white/5 hover:bg-white/10 rounded-lg transition-all"><Edit className="h-3 w-3 text-text-tertiary" /></button>
-                                            <button onClick={e => { e.stopPropagation(); if (window.confirm('Delete this folder and all its contents?')) handleDeleteFolder(f.id); }} className="p-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-lg transition-all border border-rose-500/10"><Trash2 className="h-3 w-3" /></button>
+                                        <div className="absolute bottom-4 right-4 flex gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-30">
+                                            <button
+                                                onClick={e => {
+                                                    e.stopPropagation();
+                                                    const fakeSelected = new Set([f.id]);
+                                                    const filesInFolder = files.filter(file => file.folder_id === f.id);
+                                                    // This is a shortcut for the user to download the folder they are looking at
+                                                    // For a more robust solution, we'd trigger a specific folder-zip logic
+                                                    alert("Starting Folder Archive...");
+                                                    // Trigger bulk logic with just this folder
+                                                    const origFileSelection = new Set(selectedFiles);
+                                                    const origFolderSelection = new Set(selectedFolders);
+                                                    setSelectedFolders(new Set([f.id]));
+                                                    setSelectedFiles(new Set());
+                                                    setTimeout(() => {
+                                                        downloadSelection();
+                                                        setSelectedFiles(origFileSelection);
+                                                        setSelectedFolders(origFolderSelection);
+                                                    }, 100);
+                                                }}
+                                                className="p-3 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl transition-all border border-primary/20 shadow-xl"
+                                                title="Download Folder"
+                                            >
+                                                <Download className="h-3.5 w-3.5" />
+                                            </button>
+                                            <button onClick={e => { e.stopPropagation(); setEditingFolder(f); setNewFolderName(f.name); setShowFolderModal(true); }} className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all shadow-xl"><Edit className="h-3.5 w-3.5 text-text-tertiary" /></button>
+                                            <button onClick={e => { e.stopPropagation(); if (window.confirm('Delete this folder and all contents?')) handleDeleteFolder(f.id); }} className="p-3 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl transition-all border border-rose-500/10 shadow-xl"><Trash2 className="h-3.5 w-3.5" /></button>
                                         </div>
                                     )}
                                 </div>
