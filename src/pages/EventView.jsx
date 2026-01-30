@@ -129,6 +129,10 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         loading="lazy"
                         alt=""
+                        onError={(e) => {
+                            // If image fails to load (zombie record), hide it from UI
+                            e.target.closest('.group').style.display = 'none';
+                        }}
                     />
                 ) : (file.file_type === 'video' || (file.file_name && file.file_name.toLowerCase().match(/\.(mp4|webm|mov|ogg|m4v)$/))) ? (
                     <div className="w-full h-full relative">
@@ -371,11 +375,14 @@ export default function EventView() {
         setFiles(prev => prev.filter(f => f.id !== fileId));
 
         try {
+            // ATOMIC ORDER REVERSAL: Delete DB row first. 
+            // If this fails (RLS), we STOP and rollback so we don't create a zombie.
+            const { error } = await supabase.from('media_files').delete().eq('id', fileId);
+            if (error) throw error;
+
             if (storagePath) {
                 try { await supabase.storage.from('media').remove([storagePath]); } catch (se) { }
             }
-            const { error } = await supabase.from('media_files').delete().eq('id', fileId);
-            if (error) throw error;
         } catch (e) {
             console.error("Delete failed:", e);
             setDeletedIds(prev => { const next = new Set(prev); next.delete(fileId); return next; });
@@ -419,14 +426,15 @@ export default function EventView() {
 
         try {
             if (fileIds.length) {
-                // BUG FIX: Use fileIds directly because selectedFiles is cleared optimistically
+                // ATOMIC ORDER REVERSAL: DB FIRST
+                const { error } = await supabase.from('media_files').delete().in('id', fileIds);
+                if (error) throw error;
+
                 const itemsToDelete = originalFiles.filter(f => fileIds.includes(f.id));
                 const paths = itemsToDelete.map(f => f.storage_path).filter(Boolean);
                 if (paths.length > 0) {
                     try { await supabase.storage.from('media').remove(paths); } catch (se) { }
                 }
-                const { error } = await supabase.from('media_files').delete().in('id', fileIds);
-                if (error) throw error;
             }
             if (folderIds.length) {
                 const { error } = await supabase.from('folders').delete().in('id', folderIds);
