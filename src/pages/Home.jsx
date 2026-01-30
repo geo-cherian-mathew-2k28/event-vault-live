@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, ArrowRight, Folder, Shield, Menu } from 'lucide-react';
+import { Search, ArrowRight, Folder, Shield, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Home() {
