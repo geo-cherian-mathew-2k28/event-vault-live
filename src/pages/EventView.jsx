@@ -94,18 +94,18 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                 </div>
             )}
 
-            {/* Administrative Quick Actions (Persistent for Admins) */}
-            {isOwner && !isSelecting && (
-                <div className="absolute bottom-3 right-3 z-40 flex gap-2 transition-all duration-300">
+            {/* Administrative Quick Actions (ALWAYS VISIBLE FOR ADMINS) */}
+            {(isOwner || isAdmin) && !isSelecting && (
+                <div className="absolute bottom-3 right-3 z-50 flex gap-2">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             saveAs(file.file_url, file.file_name);
                         }}
-                        className="h-10 w-10 rounded-2xl bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-xl active:scale-90"
+                        className="h-10 w-10 rounded-2xl bg-black/60 text-white backdrop-blur-xl border border-white/20 flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-2xl active:scale-95"
                         title="Download Asset"
                     >
-                        <Download className="h-4 w-4" />
+                        <Download className="h-4.5 w-4.5" />
                     </button>
                     <button
                         onClick={(e) => {
@@ -114,10 +114,10 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                                 handleDelete(e);
                             }
                         }}
-                        className="h-10 w-10 rounded-2xl bg-rose-500/20 text-rose-500 backdrop-blur-xl border border-rose-500/20 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-xl active:scale-90"
+                        className="h-10 w-10 rounded-2xl bg-rose-500 text-white backdrop-blur-xl border border-rose-500/20 flex items-center justify-center hover:bg-rose-600 transition-all shadow-2xl active:scale-95"
                         title="Purge Asset"
                     >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4.5 w-4.5" />
                     </button>
                 </div>
             )}
@@ -222,11 +222,14 @@ export default function EventView() {
     // Derived State
     const isOwner = useMemo(() => {
         if (!user || !event) return false;
-        const uId = user.id || user.sub;
-        const eOwnerId = event.owner_id;
-        // Robust case-insensitive comparison for UUIDs
-        const idMatch = uId && eOwnerId && String(uId).toLowerCase() === String(eOwnerId).toLowerCase();
-        return idMatch || userRole === 'owner' || userRole === 'admin';
+        // Super-resilient identity matching
+        const uId = String(user.id || user.sub || '').toLowerCase();
+        const eOwnerId = String(event.owner_id || '').toLowerCase();
+
+        const isCreator = uId && eOwnerId && uId === eOwnerId;
+        const isExplicitOwner = userRole === 'owner' || userRole === 'admin';
+
+        return isCreator || isExplicitOwner;
     }, [user, event, userRole]);
 
     const isAdmin = useMemo(() => {
@@ -823,7 +826,7 @@ export default function EventView() {
                                     </div>
                                     <span className="text-[11px] font-black text-white uppercase tracking-tight truncate w-full text-center px-1">{f.name}</span>
                                     {isAdmin && (
-                                        <div className="absolute bottom-4 right-4 flex gap-2 z-30 transition-all duration-300">
+                                        <div className="absolute bottom-4 right-4 flex gap-2 z-50">
                                             <button
                                                 onClick={e => {
                                                     e.stopPropagation();
@@ -838,13 +841,13 @@ export default function EventView() {
                                                         setSelectedFolders(origFolderSelection);
                                                     }, 100);
                                                 }}
-                                                className="p-3 bg-black/40 hover:bg-primary text-primary hover:text-white rounded-xl backdrop-blur-xl border border-white/10 shadow-xl transition-all active:scale-90"
+                                                className="p-3 bg-black/60 hover:bg-primary text-primary hover:text-white rounded-xl backdrop-blur-xl border border-white/20 shadow-2xl transition-all active:scale-95"
                                                 title="Download Folder"
                                             >
-                                                <Download className="h-4 w-4" />
+                                                <Download className="h-5 w-5" />
                                             </button>
-                                            <button onClick={e => { e.stopPropagation(); setEditingFolder(f); setNewFolderName(f.name); setShowFolderModal(true); }} className="p-3 bg-black/40 hover:bg-white/10 border border-white/10 rounded-xl backdrop-blur-xl transition-all active:scale-90 shadow-xl"><Edit className="h-4 w-4 text-white" /></button>
-                                            <button onClick={e => { e.stopPropagation(); if (window.confirm('Delete this folder and all contents?')) handleDeleteFolder(f.id); }} className="p-3 bg-rose-500/20 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl backdrop-blur-xl border border-rose-500/20 transition-all active:scale-90 shadow-xl"><Trash2 className="h-4 w-4" /></button>
+                                            <button onClick={e => { e.stopPropagation(); setEditingFolder(f); setNewFolderName(f.name); setShowFolderModal(true); }} className="p-3 bg-black/60 hover:bg-white/10 border border-white/20 rounded-xl backdrop-blur-xl transition-all active:scale-95 shadow-2xl"><Edit className="h-5 w-5 text-white" /></button>
+                                            <button onClick={e => { e.stopPropagation(); if (window.confirm('Delete this folder and all contents?')) handleDeleteFolder(f.id); }} className="p-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl backdrop-blur-xl border border-rose-500/20 transition-all active:scale-95 shadow-2xl"><Trash2 className="h-5 w-5" /></button>
                                         </div>
                                     )}
                                 </div>
