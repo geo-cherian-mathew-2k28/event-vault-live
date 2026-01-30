@@ -196,18 +196,28 @@ export default function EventView() {
         return stored !== 'false';
     });
 
-    // Guest Access State
+    // Access Layer State
     const [hasGuestAccess, setHasGuestAccess] = useState(false);
     const [isMember, setIsMember] = useState(false);
-
+    const [userRole, setUserRole] = useState(null);
     const fileInputRef = useRef(null);
 
     // Derived State
-    const isOwner = useMemo(() => user?.id === event?.owner_id, [user, event]);
+    const isOwner = useMemo(() => {
+        if (!user || !event) return false;
+        const userId = user.id || user.sub; // Handle various ID formats
+        const ownerId = event.owner_id;
+        return (userId && ownerId && userId.toString() === ownerId.toString()) || userRole === 'owner';
+    }, [user, event, userRole]);
 
-    // Check if user has permission to view
+    const isAdmin = useMemo(() => {
+        return isOwner || userRole === 'admin' || userRole === 'owner';
+    }, [isOwner, userRole]);
+
+    const canDelete = isAdmin;
+
     const canView = useMemo(() => {
-        if (isOwner) return true;
+        if (isAdmin) return true;
         if (isMember) return true;
         if (event?.is_public) return true;
         if (hasGuestAccess) return true;
@@ -215,10 +225,10 @@ export default function EventView() {
         const granted = sessionStorage.getItem(`vault_access_${id}`);
         if (granted === 'true') return true;
         return false;
-    }, [isOwner, isMember, event, hasGuestAccess, id]);
+    }, [isAdmin, isMember, event, hasGuestAccess, id]);
 
-    const canUpload = useMemo(() => isOwner || (event?.allow_uploads && canView), [isOwner, event, canView]);
-    const canDownload = useMemo(() => isOwner || (event?.allow_downloads && canView), [isOwner, event, canView]);
+    const canUpload = useMemo(() => isAdmin || (event?.allow_uploads && canView), [isAdmin, event, canView]);
+    const canDownload = useMemo(() => isAdmin || (event?.allow_downloads && canView), [isAdmin, event, canView]);
     const isSelecting = useMemo(() => selectedFiles.size > 0 || selectedFolders.size > 0, [selectedFiles, selectedFolders]);
 
     const handleSelectAll = useCallback(() => {
@@ -303,13 +313,14 @@ export default function EventView() {
                 if (user) {
                     const { data: member } = await supabase
                         .from('event_members')
-                        .select('id')
+                        .select('role')
                         .eq('event_id', id)
                         .eq('user_id', user.id)
                         .maybeSingle();
 
                     if (member) {
                         setIsMember(true);
+                        setUserRole(member.role);
                     } else if (data.is_public) {
                         // AUTO-JOIN PUBLIC EVENT
                         await supabase.from('event_members').insert({
@@ -318,6 +329,7 @@ export default function EventView() {
                             role: 'viewer'
                         });
                         setIsMember(true);
+                        setUserRole('viewer');
                     }
                 }
             }
@@ -439,6 +451,7 @@ export default function EventView() {
                         role: 'viewer'
                     });
                     setIsMember(true);
+                    setUserRole('viewer');
                 }
             } else {
                 throw new Error("Invalid Vault Passkey");
@@ -690,13 +703,13 @@ export default function EventView() {
 
                                 <div className="h-6 w-px bg-white/10 shrink-0" />
 
-                                {isOwner && (
+                                {(isAdmin || isOwner || (user && event && String(user.id) === String(event.owner_id))) && (
                                     <button
                                         onClick={() => setShowDeleteConfirm(true)}
-                                        className="h-8 w-8 flex-shrink-0 flex items-center justify-center text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl transition-all shadow-lg"
+                                        className="h-9 w-9 shrink-0 flex items-center justify-center text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl transition-all shadow-xl border border-rose-500/20 group scale-110"
                                         title="Delete Selection"
                                     >
-                                        <Trash2 className="h-4 w-4" />
+                                        <Trash2 className="h-4.5 w-4.5 group-hover:scale-110 transition-transform" />
                                     </button>
                                 )}
 
@@ -786,7 +799,7 @@ export default function EventView() {
                                 isLiked={likedFiles.has(file.id)}
                                 onLike={toggleLike}
                                 onDelete={handleDeleteFile}
-                                isOwner={isOwner}
+                                isOwner={isOwner || isAdmin}
                                 socialEnabled={socialProvisioned}
                                 onToggle={(id) => {
                                     const next = new Set(selectedFiles);
