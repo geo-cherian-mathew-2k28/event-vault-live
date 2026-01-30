@@ -189,7 +189,11 @@ export default function EventView() {
     const [copied, setCopied] = useState(false);
     const [likedFiles, setLikedFiles] = useState(new Set());
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [socialProvisioned, setSocialProvisioned] = useState(() => sessionStorage.getItem('social_provisioned') !== 'false');
+    // Definitive Social Gate: If sessionStorage marks as unprovisioned, we never even TRY.
+    const [socialProvisioned, setSocialProvisioned] = useState(() => {
+        const stored = sessionStorage.getItem('social_provisioned');
+        return stored !== 'false';
+    });
 
     // Guest Access State
     const [hasGuestAccess, setHasGuestAccess] = useState(false);
@@ -231,6 +235,23 @@ export default function EventView() {
 
     useEffect(() => {
         if (location.state?.code) setJoinCode(location.state.code);
+
+        // Immediate Social Probe to block redundant 404 logs
+        const probeSocial = async () => {
+            if (sessionStorage.getItem('social_provisioned') === 'false') return;
+            try {
+                const { error } = await supabase.from('media_likes').select('id').limit(1);
+                if (error && (error.status === 404 || error.code === '42P01' || error.message?.includes('does not exist'))) {
+                    setSocialProvisioned(false);
+                    sessionStorage.setItem('social_provisioned', 'false');
+                }
+            } catch (e) {
+                setSocialProvisioned(false);
+                sessionStorage.setItem('social_provisioned', 'false');
+            }
+        };
+
+        probeSocial();
         loadEvent();
     }, [id, user]);
 
@@ -372,12 +393,13 @@ export default function EventView() {
 
                     if (error) {
                         // 404 Table Not Found or 42P01 "relation does not exist"
-                        if (error.status === 404 || error.code === '42P01') {
+                        if (error.status === 404 || error.code === '42P01' || error.message?.includes('does not exist')) {
                             console.warn("Social features (likes) not provisioned. Silent fail enabled.");
                             setSocialProvisioned(false);
                             sessionStorage.setItem('social_provisioned', 'false');
                         } else {
-                            throw error;
+                            // Don't throw for non-critical social errors
+                            console.warn("Like fetch issue:", error.message);
                         }
                     } else if (likes) {
                         setLikedFiles(new Set(likes.map(l => l.file_id)));
@@ -620,9 +642,9 @@ export default function EventView() {
     }
 
     return (
-        <div className="min-h-screen bg-bg-base flex flex-col font-sans selection:bg-primary/30">
+        <div className="min-h-screen bg-bg-base flex flex-col font-sans selection:bg-primary/30 pt-16 md:pt-20">
 
-            {/* STICKY TOOLBAR */}
+            {/* STICKY TOOLBAR - Offset to clear Navbar perfectly */}
             <div className="sticky top-16 md:top-20 z-[40] w-full">
                 <div className="absolute inset-0 bg-bg-base/80 backdrop-blur-xl border-b border-white/5 shadow-xl" />
 
