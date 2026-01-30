@@ -103,7 +103,7 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                             handleDelete(e);
                         }
                     }}
-                    className="absolute bottom-3 right-3 z-30 h-9 w-9 rounded-xl bg-rose-500/20 text-rose-500 border border-rose-500/20 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white shadow-xl"
+                    className="absolute bottom-3 right-3 z-30 h-9 w-9 rounded-xl bg-rose-500/20 text-rose-500 border border-rose-500/20 flex items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white shadow-xl"
                 >
                     <Trash2 className="h-4 w-4" />
                 </button>
@@ -750,10 +750,10 @@ export default function EventView() {
                                         <Folder className={`h-6 w-6 md:h-8 md:w-8 transition-colors ${selectedFolders.has(f.id) ? 'text-primary' : 'text-text-tertiary group-hover:text-primary'}`} />
                                     </div>
                                     <span className="text-[11px] font-black text-white uppercase tracking-tight truncate w-full text-center px-1">{f.name}</span>
-                                    {isOwner && (
+                                    {isAdmin && (
                                         <div className="absolute bottom-4 right-4 flex gap-2">
-                                            <button onClick={e => { e.stopPropagation(); setEditingFolder(f); setNewFolderName(f.name); setShowFolderModal(true); }} className="p-2 opacity-0 md:group-hover:opacity-100 bg-white/5 hover:bg-white/10 rounded-lg transition-all"><Edit className="h-3 w-3 text-text-tertiary" /></button>
-                                            <button onClick={e => { e.stopPropagation(); handleDeleteFolder(f.id); }} className="p-2 opacity-0 md:group-hover:opacity-100 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-lg transition-all border border-rose-500/10"><Trash2 className="h-3 w-3" /></button>
+                                            <button onClick={e => { e.stopPropagation(); setEditingFolder(f); setNewFolderName(f.name); setShowFolderModal(true); }} className="p-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 bg-white/5 hover:bg-white/10 rounded-lg transition-all"><Edit className="h-3 w-3 text-text-tertiary" /></button>
+                                            <button onClick={e => { e.stopPropagation(); if (window.confirm('Delete this folder and all its contents?')) handleDeleteFolder(f.id); }} className="p-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-lg transition-all border border-rose-500/10"><Trash2 className="h-3 w-3" /></button>
                                         </div>
                                     )}
                                 </div>
@@ -844,6 +844,20 @@ export default function EventView() {
                                     className={`h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl border transition-all flex items-center justify-center backdrop-blur-xl ${likedFiles.has(previewFile.id) ? 'bg-primary border-primary text-white scale-110 shadow-lg' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
                                 >
                                     <Heart className={`h-5 w-5 ${likedFiles.has(previewFile.id) ? 'fill-current' : ''}`} />
+                                </button>
+                            )}
+                            {isAdmin && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (window.confirm('Delete this item permanently?')) {
+                                            handleDeleteFile(previewFile.id, previewFile.storage_path);
+                                            setPreviewFile(null);
+                                        }
+                                    }}
+                                    className="h-10 w-10 md:h-12 md:w-12 bg-rose-500/10 text-rose-500 rounded-xl md:rounded-2xl border border-rose-500/20 active:scale-90 transition-all flex items-center justify-center hover:bg-rose-500 hover:text-white backdrop-blur-xl"
+                                >
+                                    <Trash2 className="h-4 w-4 md:h-5 md:w-5" />
                                 </button>
                             )}
                             {canDownload && <button onClick={(e) => { e.stopPropagation(); saveAs(previewFile.file_url, previewFile.file_name); }} className="h-10 w-10 md:h-12 md:w-12 bg-primary text-white rounded-xl md:rounded-2xl shadow-xl active:scale-90 transition-all flex items-center justify-center"><Download className="h-4 w-4 md:h-5 md:w-5" /></button>}
