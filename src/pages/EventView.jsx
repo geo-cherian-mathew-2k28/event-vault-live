@@ -37,7 +37,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
     );
 };
 
-const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isLiked, onLike, onDelete, isOwner }) => {
+const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isLiked, onLike, onDelete, isOwner, socialEnabled }) => {
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDelete = async (e) => {
@@ -78,19 +78,21 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
             </div>
 
             {/* Like Button & Count (PERSISTENT & ACTIONABLE) */}
-            <div className="absolute top-3 right-3 z-30 flex flex-col items-center gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                <button
-                    onClick={(e) => { e.stopPropagation(); onLike(file.id); }}
-                    className={`h-9 w-9 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 transition-all duration-300 shadow-xl ${isLiked ? 'bg-primary text-white scale-110' : 'bg-black/40 text-white/80 hover:bg-white/10'}`}
-                >
-                    <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-                </button>
-                {(file.like_count !== undefined && file.like_count > 0) && (
-                    <span className="text-[10px] font-black text-white bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-md border border-white/5">
-                        {file.like_count}
-                    </span>
-                )}
-            </div>
+            {socialEnabled && (
+                <div className="absolute top-3 right-3 z-30 flex flex-col items-center gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onLike(file.id); }}
+                        className={`h-9 w-9 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 transition-all duration-300 shadow-xl ${isLiked ? 'bg-primary text-white scale-110' : 'bg-black/40 text-white/80 hover:bg-white/10'}`}
+                    >
+                        <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+                    </button>
+                    {(file.like_count !== undefined && file.like_count > 0) && (
+                        <span className="text-[10px] font-black text-white bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-md border border-white/5">
+                            {file.like_count}
+                        </span>
+                    )}
+                </div>
+            )}
 
             {/* Single Delete Button (SECURE & ACCESSIBLE) */}
             {isOwner && !isSelecting && (
@@ -187,6 +189,7 @@ export default function EventView() {
     const [copied, setCopied] = useState(false);
     const [likedFiles, setLikedFiles] = useState(new Set());
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [socialProvisioned, setSocialProvisioned] = useState(() => sessionStorage.getItem('social_provisioned') !== 'false');
 
     // Guest Access State
     const [hasGuestAccess, setHasGuestAccess] = useState(false);
@@ -348,15 +351,29 @@ export default function EventView() {
             setFolders(foldersRes.data || []);
             setFiles(filesRes.data || []);
 
-            // Robust Like Loading
-            if (user) {
+            // Robust Like Loading (Proactive Feature Detection)
+            if (user && socialProvisioned) {
                 try {
-                    const { data: likes, error } = await supabase.from('media_likes').select('file_id').eq('user_id', user.id);
-                    if (!error && likes) {
+                    const { data: likes, error } = await supabase
+                        .from('media_likes')
+                        .select('file_id')
+                        .eq('user_id', user.id);
+
+                    if (error) {
+                        // 404 Table Not Found or 42P01 "relation does not exist"
+                        if (error.status === 404 || error.code === '42P01') {
+                            console.warn("Social features (likes) not provisioned. Silent fail enabled.");
+                            setSocialProvisioned(false);
+                            sessionStorage.setItem('social_provisioned', 'false');
+                        } else {
+                            throw error;
+                        }
+                    } else if (likes) {
                         setLikedFiles(new Set(likes.map(l => l.file_id)));
                     }
                 } catch (e) {
-                    // Suppress console noise if social features aren't provisioned yet
+                    setSocialProvisioned(false);
+                    sessionStorage.setItem('social_provisioned', 'false');
                 }
             }
 
@@ -398,6 +415,11 @@ export default function EventView() {
 
     const toggleLike = async (fileId) => {
         if (!user) return;
+        if (!socialProvisioned) {
+            alert("Social features are not enabled. Run 'FIX_MEDIA_LIKES_RELATIONS.sql' in your Supabase Editor to activate.");
+            return;
+        }
+
         const newLikes = new Set(likedFiles);
         try {
             if (newLikes.has(fileId)) {
@@ -409,7 +431,8 @@ export default function EventView() {
             }
             setLikedFiles(newLikes);
         } catch (e) {
-            alert("Social feature unavailable. Run LIKES schema.");
+            console.error("Like operation failed", e);
+            setSocialProvisioned(false);
         }
     };
 
@@ -697,6 +720,7 @@ export default function EventView() {
                                 onLike={toggleLike}
                                 onDelete={handleDeleteFile}
                                 isOwner={isOwner}
+                                socialEnabled={socialProvisioned}
                                 onToggle={(id) => {
                                     const next = new Set(selectedFiles);
                                     if (next.has(id)) next.delete(id); else next.add(id);
@@ -761,12 +785,14 @@ export default function EventView() {
                             </div>
                         </div>
                         <div className="flex gap-2 md:gap-3 shrink-0 pointer-events-auto">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); toggleLike(previewFile.id); }}
-                                className={`h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl border transition-all flex items-center justify-center backdrop-blur-xl ${likedFiles.has(previewFile.id) ? 'bg-primary border-primary text-white scale-110 shadow-lg' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
-                            >
-                                <Heart className={`h-5 w-5 ${likedFiles.has(previewFile.id) ? 'fill-current' : ''}`} />
-                            </button>
+                            {socialProvisioned && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); toggleLike(previewFile.id); }}
+                                    className={`h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl border transition-all flex items-center justify-center backdrop-blur-xl ${likedFiles.has(previewFile.id) ? 'bg-primary border-primary text-white scale-110 shadow-lg' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                                >
+                                    <Heart className={`h-5 w-5 ${likedFiles.has(previewFile.id) ? 'fill-current' : ''}`} />
+                                </button>
+                            )}
                             {canDownload && <button onClick={(e) => { e.stopPropagation(); saveAs(previewFile.file_url, previewFile.file_name); }} className="h-10 w-10 md:h-12 md:w-12 bg-primary text-white rounded-xl md:rounded-2xl shadow-xl active:scale-90 transition-all flex items-center justify-center"><Download className="h-4 w-4 md:h-5 md:w-5" /></button>}
                             <button onClick={() => setPreviewFile(null)} className="h-10 w-10 md:h-12 md:w-12 bg-white/10 text-white rounded-xl md:rounded-2xl border border-white/20 active:scale-90 transition-all flex items-center justify-center hover:bg-white/20 backdrop-blur-xl"><X className="h-5 w-5 md:h-6 md:w-6" /></button>
                         </div>
