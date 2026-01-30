@@ -574,31 +574,31 @@ export default function EventView() {
                         </button>
 
                         {isSelecting ? (
-                            <div className="flex items-center gap-2 p-1 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-right-4 duration-500">
+                            <div className="flex items-center gap-2 p-1 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-right-4 duration-500 max-w-[calc(100vw-32px)] overflow-x-auto scrollbar-hide">
                                 <button
                                     onClick={handleSelectAll}
-                                    className="flex items-center gap-2 h-8 px-3 rounded-xl transition-all hover:bg-primary/20 group"
+                                    className="flex items-center gap-2 h-8 px-3 rounded-xl transition-all hover:bg-primary/20 group shrink-0"
                                 >
                                     <CheckSquare className="h-3.5 w-3.5 text-primary group-active:scale-90 transition-transform" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-primary">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-primary whitespace-nowrap">
                                         {files.length + folders.length === selectedFiles.size + selectedFolders.size ? 'Deselect All' : 'Select All'}
                                     </span>
                                 </button>
 
-                                <div className="h-6 w-px bg-white/10" />
+                                <div className="h-6 w-px bg-white/10 shrink-0" />
 
-                                <div className="px-2">
+                                <div className="px-2 shrink-0">
                                     <div className="bg-primary/10 text-primary text-[9px] font-black px-2 py-1 rounded-lg border border-primary/20">
                                         {selectedFiles.size + selectedFolders.size}
                                     </div>
                                 </div>
 
-                                <div className="h-6 w-px bg-white/10" />
+                                <div className="h-6 w-px bg-white/10 shrink-0" />
 
                                 {isOwner && (
                                     <button
                                         onClick={() => setShowDeleteConfirm(true)}
-                                        className="h-8 w-8 flex items-center justify-center text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl transition-all shadow-lg shadow-rose-900/10"
+                                        className="h-8 w-8 flex-shrink-0 flex items-center justify-center text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl transition-all shadow-lg shadow-rose-900/10"
                                         title="Delete Selection"
                                     >
                                         <Trash2 className="h-4 w-4" />
@@ -607,17 +607,17 @@ export default function EventView() {
 
                                 <button
                                     onClick={downloadSelection}
-                                    className="h-8 w-8 flex items-center justify-center text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-all shadow-lg shadow-primary/10"
+                                    className="h-8 w-8 flex-shrink-0 flex items-center justify-center text-primary bg-primary/10 hover:bg-primary/20 rounded-xl transition-all shadow-lg shadow-primary/10"
                                     title="Download Zip"
                                 >
                                     <Download className="h-4 w-4" />
                                 </button>
 
-                                <div className="h-6 w-px bg-white/10" />
+                                <div className="h-6 w-px bg-white/10 shrink-0" />
 
                                 <button
                                     onClick={() => { setSelectedFiles(new Set()); setSelectedFolders(new Set()); }}
-                                    className="h-8 w-8 flex items-center justify-center text-text-tertiary hover:text-white rounded-xl transition-all"
+                                    className="h-8 w-8 flex-shrink-0 flex items-center justify-center text-text-tertiary hover:text-white rounded-xl transition-all"
                                     title="Clear Selection"
                                 >
                                     <X className="h-4 w-4" />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Lock, Globe, HardDrive, Check, ArrowRight, Menu, Activity } from 'lucide-react';
+import { Shield, Lock, Globe, HardDrive, Check, ArrowRight, Menu, Activity, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,6 +7,8 @@ export default function About() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [scrolled, setScrolled] = useState(false);
+
+    const [menuOpen, setMenuOpen] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -18,7 +20,19 @@ export default function About() {
         <div className="min-h-screen bg-[#050505] text-white selection:bg-primary/30 font-sans antialiased overflow-x-hidden">
 
             {/* GRAIN OVERLAY */}
-            <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[100] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+            <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[150] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+
+            {/* MOBILE MENU OVERLAY */}
+            {menuOpen && (
+                <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl animate-fade-in flex flex-col items-center justify-center p-8 text-center">
+                    <button onClick={() => setMenuOpen(false)} className="absolute top-8 right-8 p-3 bg-white/5 rounded-2xl border border-white/10 text-white/40"><X className="h-6 w-6" /></button>
+                    <div className="flex flex-col gap-8">
+                        <Link to="/" onClick={() => setMenuOpen(false)} className="text-2xl font-black uppercase italic tracking-widest text-white/40 hover:text-white transition-all">Portal</Link>
+                        <Link to={user ? "/events" : "/login"} onClick={() => setMenuOpen(false)} className="text-2xl font-black uppercase italic tracking-widest text-white/40 hover:text-white transition-all">Dashboard</Link>
+                        <a href="https://geo-cherian-mathew-2k28.github.io/geo-portfolio/" target="_blank" className="text-2xl font-black uppercase italic tracking-widest text-white/40 hover:text-white transition-all">Portfolio</a>
+                    </div>
+                </div>
+            )}
 
             {/* TOP NAVIGATION BAR */}
             <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${scrolled ? 'py-4 bg-[#050505]/80 backdrop-blur-xl border-b border-white/5' : 'py-8'}`}>
@@ -42,7 +56,10 @@ export default function About() {
                         </a>
                     </div>
 
-                    <button className="md:hidden p-2 text-white/60 hover:text-white transition-colors">
+                    <button
+                        onClick={() => setMenuOpen(true)}
+                        className="md:hidden p-2 text-white/60 hover:text-white transition-colors h-10 w-10 bg-white/5 rounded-xl border border-white/10"
+                    >
                         <Menu className="h-6 w-6" />
                     </button>
                 </div>
