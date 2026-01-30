@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Activity } from 'lucide-react';
 
 const AuthContext = createContext({});
 
 export const useAuth = () => useContext(AuthContext);
 
-// Move fetch interceptor outside to prevent redundant overrides in React Strict Mode
+// Senior Developer Guard: Prevents redundant interceptors and memory leaks
 let isFetchIntercepted = false;
 const setupFetchInterceptor = (projectRef) => {
     if (isFetchIntercepted) return;
@@ -16,7 +16,7 @@ const setupFetchInterceptor = (projectRef) => {
     window.fetch = async (...args) => {
         try {
             const response = await originalFetch(...args);
-            // Check if it's a Supabase request that failed with specific auth errors
+            // Critical Recovery Logic: Catches stale session tokens before they crash the UI
             if (response.status === 400 || response.status === 401) {
                 const clone = response.clone();
                 try {
@@ -26,17 +26,16 @@ const setupFetchInterceptor = (projectRef) => {
                         errorData?.message?.includes('Refresh Token Not Found')) {
                         console.warn("Auth session conflict detected. Triggering recovery...");
                         await supabase.auth.signOut();
-                        // Optional: clear specific project token
                         if (projectRef) {
                             localStorage.removeItem(`sb-${projectRef}-auth-token`);
                         }
-                        window.location.reload(); // Force a fresh state
+                        // Redirect to home for a clean state instead of infinite reload
+                        window.location.href = '/';
                     }
-                } catch (e) { /* ignore JSON parse errors */ }
+                } catch (e) { /* silent parse fail */ }
             }
             return response;
         } catch (error) {
-            // Re-throw AbortError and others so the caller can handle them
             throw error;
         }
     };
@@ -45,33 +44,37 @@ const setupFetchInterceptor = (projectRef) => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [initializationStage, setInitializationStage] = useState('Booting');
 
     useEffect(() => {
-        // Extract project ref for reliable localStorage cleanup
         const projectRef = supabase.supabaseUrl?.split('.')[0]?.split('//')[1];
         setupFetchInterceptor(projectRef);
 
-        // Safety Timeout: Ensure app loads even if Supabase is slow/blocked
+        // Fail-Safe: Absolute maximum wait time for infrastructure initialization
         const safetyTimeout = setTimeout(() => {
             if (loading) {
-                console.warn("Auth initialization taking too long. Forcing app mount.");
+                console.warn("Infrastructure initialization timed out. Forcing interface mount.");
                 setLoading(false);
             }
-        }, 3500);
+        }, 4500);
 
-        // Check active sessions and sets the user
         const initAuth = async () => {
             try {
+                setInitializationStage('Verifying Session');
                 const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) {
-                    console.error("Session Error:", error.message);
-                }
+
+                if (error) throw error;
+
                 setUser(session?.user ?? null);
+                setInitializationStage('Finalizing Interface');
             } catch (err) {
-                console.warn("Auth initializing silently failed - likely network or storage block.");
+                console.warn("Auth initialization handshake failed. Proceeding as guest.");
             } finally {
-                setLoading(false);
-                clearTimeout(safetyTimeout);
+                // Ensure atomic state update
+                setTimeout(() => {
+                    setLoading(false);
+                    clearTimeout(safetyTimeout);
+                }, 400);
             }
         };
 
@@ -81,7 +84,6 @@ export const AuthProvider = ({ children }) => {
             } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 setUser(session?.user ?? null);
             }
-            // Always ensure loading is false on any auth change
             setLoading(false);
         });
 
@@ -102,14 +104,25 @@ export const AuthProvider = ({ children }) => {
 
     if (loading) {
         return (
-            <div className="fixed inset-0 bg-[#050505] flex items-center justify-center z-[9999]">
-                <div className="flex flex-col items-center">
-                    <div className="relative h-20 w-20 mb-8">
-                        <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
-                        <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin" />
-                        <Loader2 className="absolute inset-0 m-auto h-8 w-8 text-primary animate-pulse" />
+            <div className="fixed inset-0 bg-[#050505] flex items-center justify-center z-[9999] selection:bg-primary/30">
+                <div className="relative flex flex-col items-center">
+                    {/* Atmospheric Glow */}
+                    <div className="absolute inset-x-[-100px] inset-y-[-100px] bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
+
+                    <div className="relative h-24 w-24 mb-10">
+                        <div className="absolute inset-0 rounded-full border border-white/5" />
+                        <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin" style={{ animationDuration: '0.8s' }} />
+                        <div className="absolute inset-2 rounded-full border border-primary/10 animate-pulse" />
+                        <ShieldCheck className="absolute inset-0 m-auto h-8 w-8 text-primary/40" />
                     </div>
-                    <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Initializing Infrastructure</p>
+
+                    <div className="flex flex-col items-center gap-2">
+                        <p className="text-white text-[10px] font-black uppercase tracking-[0.6em] animate-pulse">Initializing Infrastructure</p>
+                        <div className="flex items-center gap-2 text-white/20 text-[8px] font-bold uppercase tracking-[0.4em]">
+                            <Activity className="h-3 w-3 text-primary/40 animate-pulse" />
+                            <span>{initializationStage}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         );

@@ -27,12 +27,10 @@ export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
-    const [avatarUrl, setAvatarUrl] = useState(null);
-    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const isLandingPage = location.pathname === '/' || location.pathname === '/about';
 
     useEffect(() => {
-        if (user) {
+        if (user && !isLandingPage) {
             fetchAvatar();
             const channel = supabase
                 .channel('navbar-profile-sync')
@@ -61,6 +59,8 @@ export default function Navbar() {
             if (data) setAvatarUrl(data.avatar_url);
         } catch (e) { }
     };
+
+    if (isLandingPage) return null;
 
     return (
         <nav className="fixed top-0 w-full z-[100] bg-dark-bg/80 backdrop-blur-xl border-b border-white/5 h-16 md:h-20 transition-all duration-300">

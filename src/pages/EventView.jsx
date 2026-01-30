@@ -37,7 +37,20 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
     );
 };
 
-const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isLiked, onLike }) => {
+const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isLiked, onLike, onDelete, isOwner }) => {
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDelete = async (e) => {
+        e.stopPropagation();
+        if (isDeleting) return;
+        setIsDeleting(true);
+        try {
+            await onDelete(file.id, file.storage_path);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <div
             onClick={(e) => onPreview(file, e)}
@@ -46,7 +59,14 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                 : 'border-white/5 active:scale-95 md:hover:border-white/20 bg-bg-surface/30'
                 }`}
         >
-            {/* Selection Indicator - Refined for "contextual" visibility */}
+            {/* Deleting Overlay */}
+            {isDeleting && (
+                <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                </div>
+            )}
+
+            {/* Selection Indicator */}
             <div
                 className={`absolute top-3 left-3 z-30 h-6 w-6 rounded-lg flex items-center justify-center transition-all duration-300 border ${isSelected
                     ? 'bg-primary border-primary opacity-100 scale-100'
@@ -57,13 +77,30 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                 <Check className={`h-4 w-4 text-white transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
             </div>
 
-            {/* Like Button */}
-            <button
-                onClick={(e) => { e.stopPropagation(); onLike(file.id); }}
-                className={`absolute top-3 right-3 z-30 h-8 w-8 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 transition-all duration-300 ${isLiked ? 'bg-primary text-white scale-110 shadow-lg' : 'bg-black/20 text-white/60 md:opacity-0 md:group-hover:opacity-100'}`}
-            >
-                <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-            </button>
+            {/* Like Button & Count */}
+            <div className="absolute top-3 right-3 z-30 flex flex-col items-center gap-1">
+                <button
+                    onClick={(e) => { e.stopPropagation(); onLike(file.id); }}
+                    className={`h-8 w-8 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 transition-all duration-300 ${isLiked ? 'bg-primary text-white scale-110 shadow-lg' : 'bg-black/20 text-white/60 md:opacity-0 md:group-hover:opacity-100'}`}
+                >
+                    <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+                </button>
+                {file.like_count > 0 && (
+                    <span className="text-[9px] font-black text-white/50 bg-black/40 px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                        {file.like_count}
+                    </span>
+                )}
+            </div>
+
+            {/* Single Delete Button */}
+            {isOwner && !isSelecting && (
+                <button
+                    onClick={handleDelete}
+                    className="absolute bottom-3 right-3 z-30 h-8 w-8 rounded-xl bg-rose-500/20 text-rose-500 border border-rose-500/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"
+                >
+                    <Trash2 className="h-4 w-4" />
+                </button>
+            )}
 
             <div className="w-full h-full flex items-center justify-center relative bg-bg-base/40">
                 {file.file_type === 'image' ? (
@@ -84,8 +121,8 @@ const FileCard = memo(({ file, isSelected, isSelecting, onToggle, onPreview, isL
                             crossOrigin="anonymous"
                         />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
-                            <div className="h-12 w-12 rounded-full border border-white/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                                <PlayCircle className="h-8 w-8 text-white/80 shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+                            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full border border-white/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
+                                <PlayCircle className="h-6 w-6 md:h-8 md:w-8 text-white/80" />
                             </div>
                         </div>
                     </div>
@@ -148,6 +185,7 @@ export default function EventView() {
 
     // Guest Access State
     const [hasGuestAccess, setHasGuestAccess] = useState(false);
+    const [isMember, setIsMember] = useState(false);
 
     const fileInputRef = useRef(null);
 
@@ -157,13 +195,14 @@ export default function EventView() {
     // Check if user has permission to view
     const canView = useMemo(() => {
         if (isOwner) return true;
+        if (isMember) return true;
         if (event?.is_public) return true;
         if (hasGuestAccess) return true;
         // Check session storage for existing grant
         const granted = sessionStorage.getItem(`vault_access_${id}`);
         if (granted === 'true') return true;
         return false;
-    }, [isOwner, event, hasGuestAccess, id]);
+    }, [isOwner, isMember, event, hasGuestAccess, id]);
 
     const canUpload = useMemo(() => isOwner || (event?.allow_uploads && canView), [isOwner, event, canView]);
     const canDownload = useMemo(() => isOwner || (event?.allow_downloads && canView), [isOwner, event, canView]);
@@ -229,11 +268,57 @@ export default function EventView() {
                 setEvent(data);
                 // Pre-fill join code if not already set
                 if (!joinCode) setJoinCode(data.event_code);
+
+                // Check if user is already a member
+                if (user) {
+                    const { data: member } = await supabase
+                        .from('event_members')
+                        .select('id')
+                        .eq('event_id', id)
+                        .eq('user_id', user.id)
+                        .maybeSingle();
+                    if (member) setIsMember(true);
+                }
             }
         } catch (err) {
             setNetworkError(true);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteFile = async (fileId, storagePath) => {
+        if (!confirm('Permanently remove this asset from the infrastructure?')) return;
+        try {
+            // Priority 1: Storage removal (if fails, we still try to remove from DB to fix corrupted entries)
+            if (storagePath) {
+                try {
+                    await supabase.storage.from('media').remove([storagePath]);
+                } catch (se) {
+                    console.warn("Storage removal failed, likely path mismatch or RLS issue. Proceeding with database cleanup.");
+                }
+            }
+
+            // Priority 2: Database removal
+            const { error } = await supabase.from('media_files').delete().eq('id', fileId);
+            if (error) throw error;
+
+            // Priority 3: UI update
+            setFiles(prev => prev.filter(f => f.id !== fileId));
+        } catch (e) {
+            console.error("Critical Deletion Error:", e);
+            alert("Administrative deletion failed. Please use Group Purge for hard removal.");
+        }
+    };
+
+    const handleDeleteFolder = async (folderId) => {
+        if (!confirm('Are you sure you want to delete this folder and all its contents?')) return;
+        try {
+            const { error } = await supabase.from('folders').delete().eq('id', folderId);
+            if (error) throw error;
+            setFolders(prev => prev.filter(f => f.id !== folderId));
+        } catch (e) {
+            alert("Delete failed");
         }
     };
 
@@ -584,7 +669,10 @@ export default function EventView() {
                                     </div>
                                     <span className="text-[11px] font-black text-white uppercase tracking-tight truncate w-full text-center px-1">{f.name}</span>
                                     {isOwner && (
-                                        <button onClick={e => { e.stopPropagation(); setEditingFolder(f); setNewFolderName(f.name); setShowFolderModal(true); }} className="absolute bottom-4 right-4 p-2 opacity-0 md:group-hover:opacity-100 bg-white/5 hover:bg-white/10 rounded-lg transition-all"><Edit className="h-3 w-3 text-text-tertiary" /></button>
+                                        <div className="absolute bottom-4 right-4 flex gap-2">
+                                            <button onClick={e => { e.stopPropagation(); setEditingFolder(f); setNewFolderName(f.name); setShowFolderModal(true); }} className="p-2 opacity-0 md:group-hover:opacity-100 bg-white/5 hover:bg-white/10 rounded-lg transition-all"><Edit className="h-3 w-3 text-text-tertiary" /></button>
+                                            <button onClick={e => { e.stopPropagation(); handleDeleteFolder(f.id); }} className="p-2 opacity-0 md:group-hover:opacity-100 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-lg transition-all border border-rose-500/10"><Trash2 className="h-3 w-3" /></button>
+                                        </div>
                                     )}
                                 </div>
                             ))}
@@ -601,6 +689,8 @@ export default function EventView() {
                                 isSelecting={isSelecting}
                                 isLiked={likedFiles.has(file.id)}
                                 onLike={toggleLike}
+                                onDelete={handleDeleteFile}
+                                isOwner={isOwner}
                                 onToggle={(id) => {
                                     const next = new Set(selectedFiles);
                                     if (next.has(id)) next.delete(id); else next.add(id);
@@ -701,16 +791,18 @@ export default function EventView() {
 
                         <div className="w-full h-full flex items-center justify-center animate-zoom-in relative z-50 pt-20 pb-10" onClick={e => e.stopPropagation()}>
                             {previewFile.file_type === 'video' ? (
-                                <div className="relative w-full h-full flex items-center justify-center max-w-[95vw]">
+                                <div className="relative w-full h-full flex items-center justify-center max-w-[95vw] bg-black/40 rounded-[2rem] overflow-hidden">
                                     <video
                                         key={previewFile.id}
                                         controls
                                         autoPlay
-                                        className="max-w-full max-h-[92vh] bg-black rounded-lg md:rounded-[2.5rem] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9)] border border-white/10"
+                                        className="max-w-full max-h-[90vh] bg-black shadow-2xl"
                                         playsInline
                                         crossOrigin="anonymous"
-                                        src={previewFile.file_url}
-                                    />
+                                    >
+                                        <source src={previewFile.file_url} type="video/mp4" />
+                                        Your browser does not support high-fidelity video playback.
+                                    </video>
                                 </div>
                             ) : (
                                 <div className="relative group max-w-[95vw] h-full flex items-center justify-center">
