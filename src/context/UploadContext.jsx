@@ -10,7 +10,7 @@ export function UploadProvider({ children }) {
         const newUploads = Array.from(files).map(file => ({
             id: Math.random().toString(36).substring(2),
             fileName: file.name,
-            progress: 0,
+            progress: 5, // Start with a small progress to show activity
             status: 'uploading',
             eventId
         }));
@@ -24,22 +24,25 @@ export function UploadProvider({ children }) {
             const filePath = `${eventId}/${fileName}`;
 
             try {
+                // Phase 1: Storage Upload (0% -> 85%)
                 const { error: uploadError } = await supabase.storage.from('media').upload(filePath, file, {
                     cacheControl: '3600',
                     upsert: false,
                     contentType: file.type || 'application/octet-stream',
                     onUploadProgress: (progressEvent) => {
-                        const percent = Math.floor((progressEvent.loaded / progressEvent.total) * 100);
+                        const percent = Math.floor((progressEvent.loaded / progressEvent.total) * 85);
                         setUploads(prev => prev.map(u =>
-                            u.id === uploadId ? { ...u, progress: percent } : u
+                            u.id === uploadId ? { ...u, progress: Math.max(u.progress, percent) } : u
                         ));
                     }
                 });
 
                 if (uploadError) throw uploadError;
 
-                const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(filePath);
+                // Phase 2: Metadata Handshake (85% -> 95%)
+                setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, progress: 92 } : u));
 
+                const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(filePath);
                 const isImage = file.type.startsWith('image/') || file.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|heic|avif)$/);
                 const isVideo = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|mov|ogg|m4v|3gp|mkv)$/);
 
@@ -56,14 +59,19 @@ export function UploadProvider({ children }) {
 
                 if (dbError) throw dbError;
 
+                // Phase 3: UI Stabilization (95% -> 100%)
+                // We add a brief artificial delay to allow Realtime events to propagate
+                setUploads(prev => prev.map(u => u.id === uploadId ? { ...u, progress: 98 } : u));
+                await new Promise(r => setTimeout(r, 600));
+
                 setUploads(prev => prev.map(u =>
                     u.id === uploadId ? { ...u, status: 'complete', progress: 100 } : u
                 ));
 
-                // Clear completed upload after 5 seconds
+                // Cleanup
                 setTimeout(() => {
                     setUploads(prev => prev.filter(u => u.id !== uploadId));
-                }, 5000);
+                }, 4000);
 
             } catch (error) {
                 console.error("Upload failed", error);

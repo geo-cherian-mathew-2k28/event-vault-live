@@ -39,19 +39,26 @@ export default function UploadWidget() {
                     {uploads.map(upload => (
                         <div key={upload.id} className="p-3 bg-white/[0.02] rounded-2xl flex items-center justify-between gap-4">
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <FileText className="h-4 w-4 text-text-tertiary shrink-0" />
+                                <div className="h-9 w-9 bg-white/5 rounded-xl flex items-center justify-center shrink-0 border border-white/5">
+                                    {upload.status === 'complete' ? <Check className="h-4 w-4 text-green-500" /> : <FileText className="h-4 w-4 text-primary animate-pulse" />}
+                                </div>
                                 <div className="min-w-0 flex-1">
-                                    <span className="text-[10px] text-text-secondary font-bold truncate block mb-1.5 uppercase tracking-tighter">{upload.fileName}</span>
-                                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <span className="text-[10px] text-white font-bold truncate uppercase tracking-tighter">{upload.fileName}</span>
+                                        <span className="text-[9px] font-black text-primary uppercase ml-2 tabular-nums">
+                                            {upload.status === 'complete' ? 'READY' : `${upload.progress}%`}
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                                         <div
-                                            className={`h-full transition-all duration-300 ${upload.status === 'error' ? 'bg-rose-500' : 'bg-primary'}`}
+                                            className={`h-full transition-all duration-700 ease-out ${upload.status === 'error' ? 'bg-rose-500' : 'bg-primary'}`}
                                             style={{ width: `${upload.progress}%` }}
                                         />
                                     </div>
+                                    <span className="text-[8px] text-text-tertiary font-bold uppercase tracking-widest mt-1 block opacity-60">
+                                        {upload.progress < 85 ? 'Deploying to Vault' : upload.progress < 95 ? 'Syncing Infrastructure' : upload.progress < 100 ? 'Finalizing Interface' : 'Asset Deployed'}
+                                    </span>
                                 </div>
-                            </div>
-                            <div className="shrink-0 text-[10px] font-black text-primary">
-                                {upload.status === 'complete' ? <Check className="h-4 w-4 text-green-500" /> : `${upload.progress}%`}
                             </div>
                         </div>
                     ))}
