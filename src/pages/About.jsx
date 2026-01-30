@@ -1,10 +1,11 @@
 import React, { useRef } from 'react';
-import { motion, useScroll, useSpring } from 'framer-motion';
+import { motion, useScroll, useSpring, useTransform } from 'framer-motion';
 import {
     Shield, Activity, Zap, HardDrive,
     ExternalLink, ArrowRight, Layers,
     Lock, Server, Globe, Fingerprint,
-    Command, Box, Database, Cpu
+    Command, Box, Database, Cpu,
+    Code, Brackets, Wind
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -21,15 +22,19 @@ export default function About() {
         restDelta: 0.001
     });
 
+    const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+    const y = useTransform(scrollYProgress, [0, 0.2], [0, -100]);
+
     return (
         <div className="min-h-screen bg-[#020202] text-white selection:bg-primary/30 font-sans antialiased overflow-x-hidden" ref={containerRef}>
 
-            {/* PROGRESS GAUGE */}
-            <motion.div className="fixed top-0 left-0 right-0 h-1.5 bg-primary z-[100] origin-left shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)]" style={{ scaleX }} />
+            {/* PROGRESS MONITOR */}
+            <motion.div className="fixed top-0 left-0 right-0 h-1.5 bg-primary z-[110] origin-left shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]" style={{ scaleX }} />
 
-            {/* ATMOSPHERIC LAYER */}
+            {/* ATMOSPHERIC SYSTEM */}
             <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 blur-[150px] rounded-full -mr-96 -mt-96 opacity-40" />
+                <div className="absolute top-[10%] right-[10%] w-[800px] h-[800px] bg-primary/10 blur-[150px] rounded-full opacity-40 animate-pulse" />
+                <div className="absolute bottom-[10%] left-[5%] w-[600px] h-[600px] bg-primary/5 blur-[120px] rounded-full opacity-30" />
                 <div className="absolute inset-0 opacity-[0.03]"
                     style={{
                         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
@@ -37,155 +42,170 @@ export default function About() {
                 />
             </div>
 
-            {/* HERO */}
-            <section className="relative z-10 pt-32 pb-40 px-6 max-w-7xl mx-auto flex flex-col items-center">
+            {/* HERO SECTION */}
+            <section className="relative z-10 pt-48 pb-64 px-6 max-w-7xl mx-auto flex flex-col items-center">
                 <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="inline-flex items-center gap-2 px-3 py-1 bg-white/[0.03] border border-white/10 rounded-full mb-12 backdrop-blur-md"
+                    style={{ opacity, y }}
+                    className="flex flex-col items-center"
                 >
-                    <Command className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/50">Infrastructure v4.0</span>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="inline-flex items-center gap-3 px-5 py-2 bg-white/[0.03] border border-white/10 rounded-full mb-16 backdrop-blur-3xl shadow-2xl"
+                    >
+                        <Wind className="h-4 w-4 text-primary animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Infrastructure Manifesto</span>
+                    </motion.div>
+
+                    <h1 className="text-[15vw] md:text-[13rem] font-bold tracking-[ -0.05em] uppercase italic leading-[0.7] mb-20 text-center">
+                        Memora <br />
+                        <span className="text-primary translate-x-12 inline-block">Vaults.</span>
+                    </h1>
+
+                    <p className="text-2xl md:text-5xl font-black max-w-5xl mx-auto uppercase italic tracking-tighter text-white/20 leading-[0.9] text-center px-4">
+                        We build for <span className="text-white">Absolute Zero.</span> <br />
+                        Zero-leak archival. Zero-friction access. <br />
+                        <span className="text-primary">Atomic privacy.</span>
+                    </p>
                 </motion.div>
-
-                <h1 className="text-[12vw] md:text-8xl lg:text-[11rem] font-bold tracking-tighter uppercase italic leading-[0.8] mb-12 text-center">
-                    Beyond <br />
-                    <span className="text-primary translate-x-12 inline-block">Protocol.</span>
-                </h1>
-
-                <p className="text-xl md:text-3xl font-black max-w-4xl mx-auto uppercase italic tracking-tighter text-white/30 leading-tight text-center px-4">
-                    Architecting high-fidelity digital sanctuaries. <br />
-                    Engineered for zero-leak archival and atomic bandwidth.
-                </p>
             </section>
 
-            {/* BENTO TECH GRID */}
-            <section className="relative z-10 px-6 py-20 max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            {/* TECHNICAL BLUEPRINT GRID */}
+            <section className="relative z-10 px-6 py-40 max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
 
-                    <AboutBento
-                        className="md:col-span-8 h-[400px]"
+                    <ManifestoCard
+                        className="md:col-span-8 h-[450px]"
                         icon={<Shield className="text-primary" />}
-                        title="Isolation Layer"
-                        desc="Native Row Level Security (RLS) handles data isolation at the core database level, ensuring your media is logically invisible to unauthorized vectors."
-                        tag="CORE SECURITY"
+                        title="Isolation Stack"
+                        desc="Utilizing native PostgreSQL Row Level Security (RLS) to enforce data boundaries at the kernel level. Every vault is its own cryptographically contained silo."
+                        tag="PROTOCOL"
                     />
 
-                    <AboutBento
-                        className="md:col-span-4 h-[400px]"
+                    <ManifestoCard
+                        className="md:col-span-4 h-[450px]"
                         icon={<Zap className="text-amber-500" />}
                         title="Edge Speed"
-                        desc="Optimized global retrieval nodes."
-                        tag="LATENCY"
+                        desc="Deployment across a global cluster of compute nodes for instant asset resolution."
+                        tag="PERFORMANCE"
                     />
 
-                    <AboutBento
-                        className="md:col-span-4 h-[400px]"
+                    <ManifestoCard
+                        className="md:col-span-4 h-[450px]"
                         icon={<HardDrive className="text-blue-500" />}
-                        title="1:1 Fidelity"
-                        desc="Zero archival compression policy."
-                        tag="INTEGRITY"
+                        title="Raw Fidelity"
+                        desc="A strict no-compression policy for original archival integrity."
+                        tag="STORAGE"
                     />
 
-                    <AboutBento
-                        className="md:col-span-8 h-[400px] bg-primary/5 border-primary/20"
+                    <ManifestoCard
+                        className="md:col-span-8 h-[450px] bg-primary/10 border-primary/20"
                         icon={<Activity className="text-primary" />}
-                        title="Integrity Monitor"
-                        desc="Real-time operational health feedback for the Memora production environment."
-                        tag="LIVE DIAGNOSTICS"
+                        title="Integrity Pulse"
+                        desc="Real-time monitoring of the archival infrastructure and vault health."
+                        tag="MONITORING"
                     >
-                        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10 text-left">
-                            <StatTile label="DB ENGINE" value="NOMINAL" />
-                            <StatTile label="AUTH GATE" value="ACTIVE" />
-                            <StatTile label="CDN EDGE" value="READY" />
-                            <StatTile label="ENCRYPT" value="AES256" />
+                        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 relative z-10 text-left">
+                            <Stat label="Uptime" value="100%" />
+                            <Stat label="Encryption" value="AES256" />
+                            <Stat label="Sync" value="RT" />
+                            <Stat label="Status" value="Ready" />
                         </div>
-                    </AboutBento>
+                    </ManifestoCard>
                 </div>
             </section>
 
-            {/* SIGNATURE SECTION */}
-            <section className="relative z-10 py-64 px-6 overflow-hidden border-t border-white/5 bg-white/[0.01]">
-                <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-24 items-center">
+            {/* CHIEF ENGINEER SECTION */}
+            <section className="relative z-10 py-72 px-6 overflow-hidden border-y border-white/5 bg-white/[0.01]">
+                <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-32 items-center">
                     <div className="text-left">
-                        <div className="text-[10px] font-black text-primary uppercase tracking-[1em] mb-12 italic">Chief Infrastructure Engineer</div>
-                        <h2 className="text-7xl md:text-9xl font-black text-white italic tracking-tighter uppercase leading-none mb-12">
-                            Geo Cherian <br />Mathew
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            className="text-[10px] font-black text-primary uppercase tracking-[1em] mb-12 italic"
+                        >
+                            Lead Architect & Chief Engineer
+                        </motion.div>
+                        <h2 className="text-[12vw] md:text-9xl font-black text-white italic tracking-tighter uppercase leading-[0.8] mb-16">
+                            Geo <br />Cherian <br />Mathew
                         </h2>
-                        <div className="flex flex-col sm:flex-row gap-6">
+
+                        <div className="flex flex-col sm:flex-row gap-8">
                             <a
                                 href="https://geo-cherian-mathew-2k28.github.io/geo-portfolio/"
                                 target="_blank" rel="noopener noreferrer"
-                                className="h-18 px-12 bg-white text-black flex items-center justify-center gap-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] hover:bg-primary hover:text-white transition-all shadow-2xl active:scale-95"
+                                className="h-20 px-16 bg-white text-black flex items-center justify-center gap-6 rounded-3xl font-black text-[10px] uppercase tracking-[0.4em] hover:bg-primary hover:text-white transition-all shadow-3xl active:scale-95 group"
                             >
-                                Access Portfolio <ExternalLink className="h-4 w-4" />
+                                Portfolio Access <ExternalLink className="h-5 w-5 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1" />
                             </a>
-                            <Link to="/register" className="h-18 px-12 bg-white/5 border border-white/10 text-white flex items-center justify-center gap-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] hover:bg-white/10 transition-all active:scale-95">
-                                Start Vault <ArrowRight className="h-4 w-4" />
+                            <Link to="/register" className="h-20 px-16 bg-white/[0.03] border border-white/10 text-white flex items-center justify-center gap-6 rounded-3xl font-black text-[10px] uppercase tracking-[0.4em] hover:bg-white/10 transition-all active:scale-95">
+                                Join Network <ArrowRight className="h-5 w-5" />
                             </Link>
                         </div>
                     </div>
 
-                    <div className="hidden md:flex flex-col gap-12 text-white/5 select-none">
-                        <TechLine icon={<Server />} label="INFRASTRUCTURE AS CODE" />
-                        <TechLine icon={<Database />} label="POSTGRES SQL CLUSTER" />
-                        <TechLine icon={<Cpu />} label="EDGE COMPUTE NODES" />
+                    <div className="hidden md:flex flex-col gap-12 text-white/5 select-none opacity-40">
+                        <TechnicalLine icon={<Code />} label="CORE DB ARCHITECTURE" />
+                        <TechnicalLine icon={<Database />} label="RELATIONAL MAPPING" />
+                        <TechnicalLine icon={<Server />} label="INFRASTRUCTURE AS CODE" />
+                        <TechnicalLine icon={<Brackets />} label="REACT UI ENGINE" />
                     </div>
                 </div>
             </section>
 
             {/* FOOTER */}
-            <footer className="py-20 px-6 border-t border-white/5 bg-black">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12 text-[9px] font-black text-white/20 uppercase tracking-[0.6em] italic">
-                    <div className="flex gap-12">
-                        <Link to="/" className="hover:text-primary transition-colors">Home</Link>
-                        <Link to="/about" className="hover:text-primary transition-colors">Architecture</Link>
-                        <Link to="/about" className="hover:text-primary transition-colors">Privacy Flow</Link>
+            <footer className="py-24 px-6 bg-black relative z-10 border-t border-white/5">
+                <div className="max-w-7xl mx-auto flex flex-col items-center">
+                    <div className="flex flex-wrap justify-center gap-16 mb-24 text-[10px] font-black text-white/10 uppercase tracking-[0.8em] italic">
+                        <Link to="/" className="hover:text-primary transition-colors">Portal</Link>
+                        <Link to="/about" className="hover:text-primary transition-colors">Privacy</Link>
+                        <Link to="/about" className="hover:text-primary transition-colors">Integrity</Link>
                     </div>
-                    <span>© 2026 Memora / Secure Data Structures</span>
+                    <span className="text-[10px] font-black text-white/5 uppercase tracking-[1em]">© 2026 // Geo Cherian Mathew</span>
                 </div>
             </footer>
         </div>
     );
 }
 
-function AboutBento({ className, icon, title, desc, tag, children }) {
+function ManifestoCard({ className, icon, title, desc, tag, children }) {
     return (
-        <div className={`p-10 md:p-14 rounded-[3.5rem] bg-white/[0.01] border border-white/5 hover:border-white/10 transition-all group flex flex-col justify-between overflow-hidden relative ${className}`}>
+        <div className={`p-14 md:p-20 rounded-[4rem] bg-white/[0.015] border border-white/5 hover:border-primary/20 transition-all duration-700 group flex flex-col justify-between overflow-hidden relative ${className}`}>
             <div className="relative z-10 text-left">
-                <div className="flex justify-between items-start mb-12">
-                    <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary transition-all duration-500">
-                        {React.cloneElement(icon, { size: 24, strokeWidth: 1.5, className: 'group-hover:text-white transition-colors' })}
+                <div className="flex justify-between items-start mb-16">
+                    <div className="h-16 w-16 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary transition-all duration-700">
+                        {React.cloneElement(icon, { size: 32, strokeWidth: 1, className: 'group-hover:text-white transition-colors duration-700' })}
                     </div>
-                    <span className="text-[9px] font-black text-primary uppercase tracking-[0.4em] px-4 py-2 bg-primary/5 border border-primary/10 rounded-full">{tag}</span>
+                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.5em] px-5 py-2 bg-primary/5 border border-primary/20 rounded-full">{tag}</span>
                 </div>
-                <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-6 leading-none">{title}</h3>
-                <p className="text-lg font-bold text-white/30 uppercase italic tracking-tighter leading-snug max-w-sm group-hover:text-white/60 transition-colors uppercase">{desc}</p>
+                <h3 className="text-5xl md:text-6xl font-black text-white uppercase italic tracking-tighter mb-8 leading-none group-hover:text-primary transition-colors duration-700">{title}</h3>
+                <p className="text-xl font-bold text-white/20 uppercase italic tracking-tighter leading-snug max-w-lg group-hover:text-white/60 transition-colors duration-700">{desc}</p>
             </div>
             {children}
-            <div className="absolute -bottom-10 -right-10 opacity-[0.02] group-hover:opacity-[0.06] transition-opacity">
-                {React.cloneElement(icon, { size: 200, strokeWidth: 0.5 })}
+            <div className="absolute -bottom-20 -right-20 opacity-[0.015] group-hover:opacity-[0.05] transition-all duration-1000 rotate-12 group-hover:rotate-0 group-hover:scale-125">
+                {React.cloneElement(icon, { size: 400, strokeWidth: 0.2 })}
             </div>
         </div>
     );
 }
 
-function StatTile({ label, value }) {
+function Stat({ label, value }) {
     return (
         <div className="flex flex-col gap-2">
-            <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.5em]">{label}</span>
-            <span className="text-2xl font-black text-primary italic tracking-widest">{value}</span>
+            <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.5em] italic">{label}</div>
+            <div className="text-3xl font-black text-primary uppercase italic tracking-tighter">{value}</div>
         </div>
     );
 }
 
-function TechLine({ icon, label }) {
+function TechnicalLine({ icon, label }) {
     return (
-        <div className="flex items-center gap-6 group hover:translate-x-4 transition-transform duration-500">
-            <div className="h-14 w-14 border border-white/5 rounded-2xl flex items-center justify-center">
-                {React.cloneElement(icon, { size: 24 })}
+        <div className="flex items-center gap-10 group cursor-default">
+            <div className="h-20 w-20 border border-white/5 rounded-3xl flex items-center justify-center group-hover:border-primary/20 group-hover:bg-primary/5 transition-all duration-500">
+                {React.cloneElement(icon, { size: 32, strokeWidth: 1, className: 'group-hover:text-primary transition-colors duration-500' })}
             </div>
-            <span className="text-xs font-black uppercase tracking-[0.8em]">{label}</span>
+            <span className="text-xs font-black uppercase tracking-[1em] group-hover:text-white transition-colors duration-500">{label}</span>
         </div>
     );
 }

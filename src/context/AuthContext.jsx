@@ -51,17 +51,27 @@ export const AuthProvider = ({ children }) => {
         const projectRef = supabase.supabaseUrl?.split('.')[0]?.split('//')[1];
         setupFetchInterceptor(projectRef);
 
+        // Safety Timeout: Ensure app loads even if Supabase is slow/blocked
+        const safetyTimeout = setTimeout(() => {
+            if (loading) {
+                console.warn("Auth initialization taking too long. Forcing app mount.");
+                setLoading(false);
+            }
+        }, 3500);
+
         // Check active sessions and sets the user
         const initAuth = async () => {
             try {
                 const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) throw error;
+                if (error) {
+                    console.error("Session Error:", error.message);
+                }
                 setUser(session?.user ?? null);
             } catch (err) {
-                console.error("Auth initialization error:", err);
-                setUser(null);
+                console.warn("Auth initializing silently failed - likely network or storage block.");
             } finally {
                 setLoading(false);
+                clearTimeout(safetyTimeout);
             }
         };
 
@@ -71,12 +81,16 @@ export const AuthProvider = ({ children }) => {
             } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 setUser(session?.user ?? null);
             }
+            // Always ensure loading is false on any auth change
             setLoading(false);
         });
 
         initAuth();
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            clearTimeout(safetyTimeout);
+        };
     }, []);
 
     const value = {
@@ -88,10 +102,14 @@ export const AuthProvider = ({ children }) => {
 
     if (loading) {
         return (
-            <div className="fixed inset-0 bg-dark-bg flex items-center justify-center">
+            <div className="fixed inset-0 bg-[#050505] flex items-center justify-center z-[9999]">
                 <div className="flex flex-col items-center">
-                    <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-                    <p className="text-slate-400 text-sm animate-pulse">Initializing EventVault...</p>
+                    <div className="relative h-20 w-20 mb-8">
+                        <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+                        <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin" />
+                        <Loader2 className="absolute inset-0 m-auto h-8 w-8 text-primary animate-pulse" />
+                    </div>
+                    <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Initializing Infrastructure</p>
                 </div>
             </div>
         );

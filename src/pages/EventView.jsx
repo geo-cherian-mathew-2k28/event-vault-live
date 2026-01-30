@@ -146,12 +146,27 @@ export default function EventView() {
     const [likedFiles, setLikedFiles] = useState(new Set());
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+    // Guest Access State
+    const [hasGuestAccess, setHasGuestAccess] = useState(false);
+
     const fileInputRef = useRef(null);
 
-    // Derived State - MOVED ABOVE USEEFFECTS
+    // Derived State
     const isOwner = useMemo(() => user?.id === event?.owner_id, [user, event]);
-    const canUpload = useMemo(() => isOwner || event?.allow_uploads, [isOwner, event]);
-    const canDownload = useMemo(() => isOwner || event?.allow_downloads, [isOwner, event]);
+
+    // Check if user has permission to view
+    const canView = useMemo(() => {
+        if (isOwner) return true;
+        if (event?.is_public) return true;
+        if (hasGuestAccess) return true;
+        // Check session storage for existing grant
+        const granted = sessionStorage.getItem(`vault_access_${id}`);
+        if (granted === 'true') return true;
+        return false;
+    }, [isOwner, event, hasGuestAccess, id]);
+
+    const canUpload = useMemo(() => isOwner || (event?.allow_uploads && canView), [isOwner, event, canView]);
+    const canDownload = useMemo(() => isOwner || (event?.allow_downloads && canView), [isOwner, event, canView]);
     const isSelecting = useMemo(() => selectedFiles.size > 0 || selectedFolders.size > 0, [selectedFiles, selectedFolders]);
 
     const handleSelectAll = useCallback(() => {
@@ -173,8 +188,8 @@ export default function EventView() {
     }, [id, user]);
 
     useEffect(() => {
-        if (event) loadContent();
-    }, [currentFolderId, event]);
+        if (event && canView) loadContent();
+    }, [currentFolderId, event, canView]);
 
     useEffect(() => {
         const handleKeys = (e) => {
@@ -210,7 +225,11 @@ export default function EventView() {
                 setNetworkError(true);
                 return;
             }
-            if (data) setEvent(data);
+            if (data) {
+                setEvent(data);
+                // Pre-fill join code if not already set
+                if (!joinCode) setJoinCode(data.event_code);
+            }
         } catch (err) {
             setNetworkError(true);
         } finally {
@@ -266,13 +285,13 @@ export default function EventView() {
         e.preventDefault();
         setJoining(true);
         try {
-            const { data, error } = await supabase.rpc('join_event', {
-                input_code: joinCode.trim().toUpperCase(),
-                input_passkey: joinPasskey.trim()
-            });
-            if (error) throw error;
-            if (!data.success) throw new Error(data.message);
-            await loadEvent();
+            // Check if passkey matches the event
+            if (joinPasskey.trim() === event.passkey) {
+                setHasGuestAccess(true);
+                sessionStorage.setItem(`vault_access_${id}`, 'true');
+            } else {
+                throw new Error("Invalid Vault Passkey");
+            }
         } catch (error) {
             alert(error.message);
         } finally {
@@ -282,7 +301,7 @@ export default function EventView() {
 
     const handleFileUpload = async (e) => {
         const fileList = Array.from(e.target.files);
-        if (!fileList.length) return;
+        if (!fileList.length || !user) return;
         uploadFiles(fileList, id, currentFolderId, user.id);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
@@ -399,18 +418,45 @@ export default function EventView() {
         </div>
     );
 
-    if (!event) {
+    if (!canView) {
         return (
-            <div className="min-h-screen bg-bg-base flex items-center justify-center p-4">
-                <div className="max-w-xs w-full glass-panel p-10 rounded-[2.5rem] text-center border-white/5 shadow-2xl animate-fade-in relative overflow-hidden">
+            <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 relative overflow-hidden">
+                {/* Background Atmosphere */}
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg aspect-square bg-primary/20 blur-[120px] rounded-full opacity-50" />
+                </div>
+
+                <div className="max-w-xs w-full glass-panel p-10 rounded-[3rem] text-center border-white/5 shadow-3xl animate-fade-in relative z-10 overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full -mr-16 -mt-16" />
-                    <Lock className="h-10 w-10 text-primary mx-auto mb-6 relative z-10" />
-                    <h2 className="text-2xl font-black text-white mb-2 uppercase italic tracking-tighter relative z-10">Vault Locked</h2>
-                    <form onSubmit={handleJoin} className="space-y-4 mt-8 relative z-10">
-                        <input className="input-field h-14 text-center font-mono uppercase text-xl bg-white/5 border-white/10 tracking-[0.4em]" placeholder="CODE" value={joinCode} onChange={e => setJoinCode(e.target.value)} maxLength={6} required />
-                        <input className="input-field h-14 text-center text-base font-bold bg-white/5 border-white/10" type="password" placeholder="PASSKEY" value={joinPasskey} onChange={e => setJoinPasskey(e.target.value)} required />
-                        <button type="submit" disabled={joining} className="btn-primary w-full h-14 font-black uppercase text-xs tracking-widest mt-4 shadow-xl shadow-primary/20">{joining ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Enter Vault'}</button>
+
+                    <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-primary/20">
+                        <Lock className="h-8 w-8 text-primary" />
+                    </div>
+
+                    <h2 className="text-2xl font-black text-white mb-2 uppercase italic tracking-tighter relative z-10">Vault Protection</h2>
+                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-10">Shared via {event.event_code}</p>
+
+                    <form onSubmit={handleJoin} className="space-y-4 relative z-10">
+                        <div className="space-y-1.5 text-left">
+                            <label className="text-[9px] font-black text-white/20 uppercase tracking-widest ml-4">Access Passkey</label>
+                            <input
+                                className="input-field h-16 text-center text-xl font-mono bg-white/5 border-white/10 tracking-[0.5em] rounded-2xl focus:border-primary/50"
+                                type="password"
+                                placeholder="••••"
+                                value={joinPasskey}
+                                onChange={e => setJoinPasskey(e.target.value)}
+                                required
+                                autoFocus
+                            />
+                        </div>
+                        <button type="submit" disabled={joining} className="btn-primary w-full h-16 font-black uppercase text-xs tracking-[0.3em] mt-6 shadow-2xl shadow-primary/30 rounded-2xl">
+                            {joining ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'Decrypt & Enter'}
+                        </button>
                     </form>
+
+                    <div className="mt-8 pt-8 border-t border-white/5">
+                        <p className="text-[9px] font-bold text-white/20 uppercase tracking-tight">Access is granted for this session only.</p>
+                    </div>
                 </div>
             </div>
         );
