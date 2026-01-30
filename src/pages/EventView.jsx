@@ -740,7 +740,7 @@ export default function EventView() {
                 </div>
             </div>
 
-            <div className="flex-1 px-4 md:px-8 pt-28 md:pt-32 pb-40">
+            <div className="flex-1 px-4 md:px-8 pt-14 md:pt-20 pb-40">
                 <div className="max-w-7xl mx-auto">
                     {/* Visual Folders Grid - Premium Density */}
                     {folders.length > 0 && (
@@ -888,7 +888,7 @@ export default function EventView() {
                             <ChevronRight className="h-6 w-6 md:h-12 md:w-12" />
                         </button>
 
-                        <div className="w-full h-full flex items-center justify-center animate-zoom-in relative z-50 pt-24 pb-12" onClick={e => e.stopPropagation()}>
+                        <div className="w-full h-full flex items-center justify-center animate-zoom-in relative z-50 pt-20 pb-10 px-4 md:px-20" onClick={e => e.stopPropagation()}>
                             {(previewFile.file_type === 'video' || (previewFile.file_url && previewFile.file_url.toLowerCase().match(/\.(mp4|webm|mov|ogg)$/))) ? (
                                 <div className="relative w-full h-full flex items-center justify-center max-w-[95vw] bg-black/40 rounded-[2rem] overflow-hidden">
                                     <video
@@ -897,7 +897,7 @@ export default function EventView() {
                                         autoPlay
                                         muted
                                         preload="auto"
-                                        className="w-full h-full max-h-[90vh] bg-black shadow-2xl rounded-2xl md:rounded-[2rem]"
+                                        className="max-w-full max-h-full bg-black shadow-2xl rounded-2xl md:rounded-[2rem] object-contain"
                                         playsInline
                                     >
                                         <source src={previewFile.file_url} type="video/mp4" />
