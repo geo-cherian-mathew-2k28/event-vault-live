@@ -14,25 +14,31 @@ export default function PublicEventViewWrapper() {
             if (!code) return;
 
             try {
-                // Try V4 Lookup (Robust, Case-Insensitive)
-                const { data, error } = await supabase.rpc('get_event_id_by_code', { code_input: code });
+                // Try V4 Lookup (Robust RPC)
+                const { data: rpcData, error: rpcError } = await supabase.rpc('get_event_id_by_code', { code_input: code });
 
-                if (error) {
-                    console.error("Lookup Error:", error);
-                    setDebugError(`System Error: ${error.message}`);
-                    return;
-                }
-
-                if (data && data.length > 0) {
-                    // Success: Redirect to the event ID
-                    const eventId = data[0].id;
-                    console.log(`Resolved code ${code} to ID ${eventId}`);
+                if (rpcData && rpcData.length > 0) {
+                    const eventId = rpcData[0].id;
                     navigate(`/events/${eventId}`, { replace: true, state: { code: code } });
                     return;
                 }
 
-                // Fallback: If not found
-                console.warn(`Code ${code} yielded no results.`);
+                // Fallback: Direct Query (Case Insensitive)
+                const { data: directData, error: directError } = await supabase
+                    .from('events')
+                    .select('id')
+                    .ilike('event_code', code)
+                    .maybeSingle();
+
+                if (directData) {
+                    navigate(`/events/${directData.id}`, { replace: true, state: { code: code } });
+                    return;
+                }
+
+                if (rpcError || directError) {
+                    console.error("Resolution failed:", rpcError || directError);
+                }
+
                 setDebugError(`Invalid Event Code: "${code}". Please check the link.`);
 
             } catch (err) {

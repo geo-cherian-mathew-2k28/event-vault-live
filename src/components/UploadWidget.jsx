@@ -12,7 +12,7 @@ export default function UploadWidget() {
     const totalCount = uploads.length;
 
     return (
-        <div className={`fixed bottom-6 right-6 z-[2000] w-80 glass-panel rounded-3xl shadow-3xl border border-white/10 overflow-hidden transition-all duration-500 ${isMinimized ? 'h-16' : 'h-auto max-h-[400px]'}`}>
+        <div className={`fixed bottom-4 md:bottom-6 left-4 md:left-auto md:right-6 z-[2000] w-[calc(100vw-32px)] md:w-80 glass-panel rounded-[2rem] shadow-3xl border border-white/10 overflow-hidden transition-all duration-500 ${isMinimized ? 'h-16' : 'h-auto max-h-[400px]'}`}>
             {/* Header */}
             <div className="p-4 bg-bg-surface/90 border-b border-white/5 flex items-center justify-between cursor-pointer" onClick={() => setIsMinimized(!isMinimized)}>
                 <div className="flex items-center gap-3">

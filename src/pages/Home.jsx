@@ -90,16 +90,15 @@ export default function Home() {
                         </p>
                     </div>
 
-                    {/* CENTRAL INPUT BOX (MATCHING IMAGE) */}
-                    <div className="max-w-xl mx-auto w-full mb-12">
+                    <div className="max-w-xl mx-auto w-full mb-12 px-2 sm:px-0">
                         <form onSubmit={handleCodeSubmit} className="relative group">
                             <div className="absolute -inset-1 bg-gradient-to-r from-white/10 to-transparent blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                            <div className="relative bg-[#1a1c22] border border-white/5 rounded-2xl h-20 md:h-24 flex items-center px-8 gap-4 shadow-2xl">
-                                <Search className="h-6 w-6 text-white/20" />
+                            <div className="relative bg-[#1a1c22] border border-white/5 rounded-2xl h-20 md:h-24 flex items-center px-4 md:px-8 gap-3 md:gap-4 shadow-2xl">
+                                <Search className="h-5 w-5 md:h-6 md:w-6 text-white/20 shrink-0" />
                                 <input
                                     type="text"
-                                    placeholder="ENTER EVENT CODE"
-                                    className="flex-1 bg-transparent border-none outline-none text-xl md:text-2xl font-mono uppercase tracking-[0.2em] text-white placeholder:text-white/10"
+                                    placeholder="ENTER CODE"
+                                    className="flex-1 bg-transparent border-none outline-none text-base md:text-2xl font-mono uppercase tracking-[0.1em] md:tracking-[0.2em] text-white placeholder:text-white/10 min-w-0"
                                     value={eventCode}
                                     onChange={(e) => setEventCode(e.target.value.toUpperCase())}
                                     maxLength={6}
@@ -107,7 +106,7 @@ export default function Home() {
                                 <button
                                     type="submit"
                                     disabled={eventCode.length < 4}
-                                    className="h-12 w-12 md:h-14 md:w-14 bg-white/10 hover:bg-white/20 disabled:opacity-20 text-white rounded-xl flex items-center justify-center transition-all active:scale-95"
+                                    className="h-12 w-12 md:h-14 md:w-14 bg-white/10 hover:bg-white/20 disabled:opacity-20 text-white rounded-xl flex items-center justify-center transition-all active:scale-95 shrink-0"
                                 >
                                     <ArrowRight className="h-6 w-6" />
                                 </button>

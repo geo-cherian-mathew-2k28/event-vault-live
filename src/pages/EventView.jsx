@@ -285,7 +285,18 @@ export default function EventView() {
                         .eq('event_id', id)
                         .eq('user_id', user.id)
                         .maybeSingle();
-                    if (member) setIsMember(true);
+
+                    if (member) {
+                        setIsMember(true);
+                    } else if (data.is_public) {
+                        // AUTO-JOIN PUBLIC EVENT
+                        await supabase.from('event_members').insert({
+                            event_id: id,
+                            user_id: user.id,
+                            role: 'viewer'
+                        });
+                        setIsMember(true);
+                    }
                 }
             }
         } catch (err) {
@@ -396,6 +407,16 @@ export default function EventView() {
             if (joinPasskey.trim() === event.passkey) {
                 setHasGuestAccess(true);
                 sessionStorage.setItem(`vault_access_${id}`, 'true');
+
+                // If logged in, permanently add to dashboard
+                if (user && !isMember) {
+                    await supabase.from('event_members').insert({
+                        event_id: id,
+                        user_id: user.id,
+                        role: 'viewer'
+                    });
+                    setIsMember(true);
+                }
             } else {
                 throw new Error("Invalid Vault Passkey");
             }
@@ -420,19 +441,42 @@ export default function EventView() {
             return;
         }
 
+        const isLiked = likedFiles.has(fileId);
         const newLikes = new Set(likedFiles);
+
+        // Optimistic UI Update
+        if (isLiked) newLikes.delete(fileId);
+        else newLikes.add(fileId);
+        setLikedFiles(newLikes);
+
+        // Optimistic Count Update in files list
+        setFiles(currentFiles => currentFiles.map(f => {
+            if (f.id === fileId) {
+                const currentCount = f.like_count || 0;
+                return { ...f, like_count: isLiked ? Math.max(0, currentCount - 1) : currentCount + 1 };
+            }
+            return f;
+        }));
+
+        // Optimistic Count Update in preview file if open
+        if (previewFile?.id === fileId) {
+            setPreviewFile(prev => ({
+                ...prev,
+                like_count: isLiked ? Math.max(0, (prev.like_count || 0) - 1) : (prev.like_count || 0) + 1
+            }));
+        }
+
         try {
-            if (newLikes.has(fileId)) {
-                newLikes.delete(fileId);
+            if (isLiked) {
                 await supabase.from('media_likes').delete().eq('file_id', fileId).eq('user_id', user.id);
             } else {
-                newLikes.add(fileId);
                 await supabase.from('media_likes').insert({ file_id: fileId, user_id: user.id });
             }
-            setLikedFiles(newLikes);
         } catch (e) {
             console.error("Like operation failed", e);
+            // Rollback on failure
             setSocialProvisioned(false);
+            loadContent(); // Refresh to restore correct state
         }
     };
 
@@ -673,7 +717,7 @@ export default function EventView() {
                 </div>
             </div>
 
-            <div className="flex-1 px-4 md:px-8 pt-6 md:pt-12 pb-24">
+            <div className="flex-1 px-4 md:px-8 pt-10 md:pt-16 pb-32">
                 <div className="max-w-7xl mx-auto">
                     {/* Visual Folders Grid - Premium Density */}
                     {folders.length > 0 && (
